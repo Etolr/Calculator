@@ -47,8 +47,8 @@ import * as math from "mathjs";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import {
-  ResponsiveContainer, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend
+  ResponsiveContainer, LineChart, Line, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine
 } from "recharts";
 
 // ─── KATEX ───────────────────────────────────────────────────
@@ -1824,23 +1824,44 @@ export default function App() {
               <div style={S.fullWrap}>
                 <div style={{ ...S.graphCard, animation:"cyberSlide 0.6s ease" }}>
                   <span style={S.label}>visualización gráfica</span>
-                  <p style={{ fontSize:"0.75rem", color:"#94a3b8", margin:"4px 0 14px" }}>
+                  <p style={{ fontSize:"0.75rem", color:"#94a3b8", margin:"4px 0 8px" }}>
                     <strong style={{color:"#a78bfa"}}>— f(x)</strong> &nbsp;·&nbsp; <strong style={{color:"#38bdf8"}}>- - f'(x)</strong>
+                    {criticos?.success && criticos.puntos.length > 0 && (
+                      <> &nbsp;·&nbsp; <strong style={{color:"#10b981"}}>▲ máx</strong> <strong style={{color:"#ef4444"}}>▼ mín</strong> <strong style={{color:"#38bdf8"}}>↔ infl</strong></>
+                    )}
                   </p>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={graphData} margin={{top:5,right:20,left:0,bottom:5}}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={graphData} margin={{top:10,right:20,left:0,bottom:5}}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#4a5568",fontSize:10}} tickCount={13} />
-                      <YAxis stroke="#2d3748" tick={{fill:"#4a5568",fontSize:10}} domain={["auto","auto"]} width={38} />
+                      <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} tickCount={13} />
+                      <YAxis stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} domain={["auto","auto"]} width={38} />
                       <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(167,139,250,0.3)",borderRadius:8,fontSize:12}} labelFormatter={v=>`x = ${v}`} formatter={(val,name)=>[val!==null?val.toFixed(4):"—",name==="fx"?"f(x)":"f'(x)"]} />
                       <Legend formatter={v=>v==="fx"?"f(x)":"f'(x)"} wrapperStyle={{fontSize:12,color:"#64748b"}} />
                       <Line type="monotone" dataKey="fx"  stroke="#a78bfa" strokeWidth={2.5} dot={false} connectNulls={false} />
                       <Line type="monotone" dataKey="dfx" stroke="#38bdf8" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={false} />
                     </LineChart>
                   </ResponsiveContainer>
-                  <p style={{ fontSize:"0.75rem", color:"#94a3b8", marginTop:10, lineHeight:1.7 }}>
-                    💡 Donde f(x) tiene un máximo o mínimo, f'(x) cruza el eje x. Donde f(x) crece, f'(x) es positiva.
-                  </p>
+
+                  {/* Puntos críticos sobre la gráfica */}
+                  {criticos?.success && criticos.puntos.length > 0 && (
+                    <div style={{ marginTop:12, display:"flex", flexWrap:"wrap", gap:8 }}>
+                      {criticos.puntos.map((p, i) => {
+                        const col  = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":"#38bdf8";
+                        const icon = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":"↔";
+                        return (
+                          <div key={i} style={{ display:"flex", alignItems:"center", gap:6, background:`${col}12`, border:`1px solid ${col}44`, borderRadius:8, padding:"5px 10px" }}>
+                            <span style={{ color:col, fontSize:"0.8rem" }}>{icon}</span>
+                            <span style={{ fontSize:"0.72rem", color:"#94a3b8", fontFamily:"monospace" }}>({p.x}, {p.y})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {(!criticos || !criticos.success) && result?.success && (
+                    <p style={{ fontSize:"0.72rem", color:"#475569", marginTop:10 }}>
+                      💡 Pulsa <strong style={{color:"#f59e0b"}}>Analizar f(x)</strong> en la sección de Puntos Críticos para ver los máximos y mínimos marcados aquí.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -2075,12 +2096,19 @@ export default function App() {
               <div style={S.fullWrap}>
                 <div style={{ ...S.graphCard, animation:"cyberSlide 0.5s ease" }}>
                   <span style={S.label}>gráfica cerca de x = {limPoint}</span>
+                  <p style={{ fontSize:"0.72rem", color:"#94a3b8", margin:"4px 0 10px" }}>
+                    <span style={{color:"#ffe620"}}>┅ x = {limPoint}</span> &nbsp;·&nbsp; punto donde se evalúa el límite
+                  </p>
                   <ResponsiveContainer width="100%" height={240}>
                     <LineChart data={limPoints} margin={{top:5,right:20,left:0,bottom:5}}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#4a5568",fontSize:10}} />
-                      <YAxis stroke="#2d3748" tick={{fill:"#4a5568",fontSize:10}} domain={["auto","auto"]} width={48} />
+                      <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} />
+                      <YAxis stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} domain={["auto","auto"]} width={48} />
                       <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(56,189,248,0.3)",borderRadius:8,fontSize:12}} labelFormatter={v=>`x = ${v}`} formatter={(val)=>[val!==null?val.toFixed(4):"—","f(x)"]} />
+                      <ReferenceLine x={parseFloat(limPoint)} stroke="#ffe620" strokeDasharray="6 3" strokeWidth={2} label={{ value:`x=${limPoint}`, fill:"#ffe620", fontSize:10, position:"top" }} />
+                      {limResult?.exists && (
+                        <ReferenceLine y={limResult.exact} stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5} label={{ value:`L=${limResult.exact?.toFixed(3)}`, fill:"#10b981", fontSize:10, position:"right" }} />
+                      )}
                       <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2.5} dot={false} connectNulls={false} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -2264,15 +2292,27 @@ export default function App() {
                       </div>
                       <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:4 }}>unidades²</div>
                     </div>
-                    {/* Mini gráfica del área */}
-                    <ResponsiveContainer width="100%" height={180}>
-                      <LineChart data={defResult.pts} margin={{top:5,right:16,left:0,bottom:5}}>
+                    {/* Gráfica con área sombreada */}
+                    <p style={{ fontSize:"0.72rem", color:"#94a3b8", margin:"0 0 8px" }}>
+                      <span style={{color:"#38bdf888"}}>▓</span> Área sombreada entre x={defResult.a} y x={defResult.b}
+                    </p>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={defResult.pts} margin={{top:5,right:16,left:0,bottom:5}}>
+                        <defs>
+                          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor="#38bdf8" stopOpacity={0.35}/>
+                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#4a5568",fontSize:9}} />
-                        <YAxis stroke="#2d3748" tick={{fill:"#4a5568",fontSize:9}} domain={["auto","auto"]} width={32} />
+                        <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#64748b",fontSize:9}} />
+                        <YAxis stroke="#2d3748" tick={{fill:"#64748b",fontSize:9}} domain={["auto","auto"]} width={36} />
                         <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(56,189,248,0.3)",borderRadius:8,fontSize:11}} labelFormatter={v=>`x = ${v}`} formatter={v=>[v?.toFixed(4),"f(x)"]} />
-                        <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2} dot={false} connectNulls={false} />
-                      </LineChart>
+                        <ReferenceLine x={defResult.a} stroke="#ffe620" strokeDasharray="5 3" strokeWidth={1.5} label={{value:`a=${defResult.a}`,fill:"#ffe620",fontSize:9,position:"top"}} />
+                        <ReferenceLine x={defResult.b} stroke="#ff6ee4" strokeDasharray="5 3" strokeWidth={1.5} label={{value:`b=${defResult.b}`,fill:"#ff6ee4",fontSize:9,position:"top"}} />
+                        <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
+                        <Area type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2} fill="url(#areaGrad)" connectNulls={false} />
+                      </AreaChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:8, lineHeight:1.6 }}>
                       💡 El área puede ser negativa si la función está por debajo del eje x en ese intervalo.
