@@ -1588,7 +1588,7 @@ function RenderMensaje({ texto }) {
 }
 
 function TabIATutor({ contextoCalculadora }) {
-  const [mensajes,    setMensajes]    = useState([]);
+  const [mensajes,    setMensajes]    = useState(() => { try { const s = localStorage.getItem("neoderiva_ia_chat"); return s ? JSON.parse(s) : []; } catch { return []; } });
   const [input,       setIaInput]     = useState("");
   const [cargando,    setCargando]    = useState(false);
   const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("neoderiva_gemini_key") || "");
@@ -1601,6 +1601,11 @@ function TabIATutor({ contextoCalculadora }) {
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [mensajes, cargando]);
+
+  // Persiste los últimos 40 mensajes en localStorage
+  useEffect(() => {
+    try { localStorage.setItem("neoderiva_ia_chat", JSON.stringify(mensajes.slice(-40))); } catch(_) {}
+  }, [mensajes]);
 
   const keyEfectivo = apiKey.trim() || GEMINI_API_KEY;
   const apiConfigurada = keyEfectivo && keyEfectivo !== "TU_API_KEY_AQUI";
@@ -1668,7 +1673,10 @@ function TabIATutor({ contextoCalculadora }) {
   };
 
   const limpiarChat = () => {
-    if (window.confirm("¿Limpiar el historial del chat?")) setMensajes([]);
+    if (window.confirm("¿Limpiar el historial del chat?")) {
+      setMensajes([]);
+      try { localStorage.removeItem("neoderiva_ia_chat"); } catch(_) {}
+    }
   };
 
   // Preguntas de inicio rápido
@@ -1837,7 +1845,7 @@ function TabIATutor({ contextoCalculadora }) {
         </div>
       </div>
       <div style={{ fontSize:"0.68rem", color:"#475569", marginTop:6, textAlign:"center" }}>
-        Las conversaciones no se guardan entre sesiones · Tus datos nunca salen de tu dispositivo
+        Las conversaciones se guardan en tu dispositivo (últimos 40 mensajes) · Tu API key nunca sale de aquí
       </div>
 
       <style>{`
