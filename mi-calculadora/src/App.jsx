@@ -1625,17 +1625,17 @@ export default function App() {
 
   const S = {
     root: { minHeight:"100vh", background:"linear-gradient(135deg,#060612 0%,#0d0a2a 40%,#10082a 70%,#060612 100%)", fontFamily:"'Space Mono','DM Mono','Fira Code',monospace", color:"#e2e8f0", paddingBottom:80 },
-    header: { textAlign:"center", padding:"60px 20px 0", position:"relative" },
-    title: { fontSize:"clamp(1.6rem,5vw,2.8rem)", fontWeight:700, background:"linear-gradient(90deg,#ff6ee4,#a78bfa,#38bdf8,#34d399)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", margin:0, letterSpacing:"-1px", filter:"drop-shadow(0 0 20px #a78bfa44)" },
+    header: { textAlign:"center", padding:"60px 20px 10px", position:"relative" },
+    title: { fontSize:"clamp(1.6rem,5vw,2.8rem)", fontWeight:700, background:"linear-gradient(90deg,#ff6ee4,#a78bfa,#38bdf8,#34d399)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", margin:0, letterSpacing:"-1px", filter:"drop-shadow(0 0 20px #a78bfa44)", lineHeight:1.25, paddingBottom:"0.1em" },
     subtitle: { color:"#94a3b8", fontSize:"0.8rem", marginTop:4, letterSpacing:"0.1em", textTransform:"uppercase" },
     badge: { display:"inline-block", marginTop:8, fontSize:"0.65rem", color:"#38bdf8", border:"1px solid #38bdf833", background:"#38bdf80a", padding:"3px 12px", borderRadius:999, letterSpacing:"0.12em" },
     tabs: { display:"flex", justifyContent:"center", gap:4, marginTop:20, flexWrap:"wrap", padding:"0 12px" },
     tab: (active) => ({ padding:"8px 16px", borderRadius:999, border:`1px solid ${active?"transparent":"rgba(255,255,255,0.15)"}`, cursor:"pointer", fontSize:"0.78rem", fontWeight:700, letterSpacing:"0.06em", transition:"all 0.25s cubic-bezier(.4,0,.2,1)",
       background:active?"linear-gradient(135deg,#a78bfa,#38bdf8)":"rgba(255,255,255,0.06)",
       color:active?"#0f0c29":"#94a3b8", boxShadow:active?"0 0 20px #a78bfa55":"none" }),
-    grid: { width:"100%", padding:"32px 32px 0", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(360px,1fr))", gap:24, boxSizing:"border-box" },
+    grid: { width:"100%", padding:"24px 16px 0", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,340px),1fr))", gap:16, boxSizing:"border-box" },
     card: { ...glassCard, marginTop:0 },
-    fullWrap: { width:"100%", padding:"0 32px", boxSizing:"border-box" },
+    fullWrap: { width:"100%", padding:"0 16px", boxSizing:"border-box" },
     graphCard: { ...glassCard },
     label: { fontSize:"0.65rem", letterSpacing:"0.12em", color:"#94a3b8", textTransform:"uppercase", marginBottom:6, display:"block" },
     inputBox: { width:"100%", background:"rgba(0,0,0,0.4)", border:"1.5px solid rgba(167,139,250,0.25)", borderRadius:10, padding:"12px 14px", color:"#e2e8f0", fontSize:"1rem", fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.25s, box-shadow 0.25s" },
@@ -1647,9 +1647,9 @@ export default function App() {
     resultBox: (accent) => ({ background:accent?"rgba(167,139,250,0.08)":"rgba(0,0,0,0.25)", border:accent?"1px solid rgba(167,139,250,0.3)":"1px solid rgba(255,255,255,0.05)", borderRadius:10, padding:16, textAlign:"center" }),
     error: { background:"#ef444415", border:"1px solid #ef444444", borderRadius:8, padding:"9px 12px", marginTop:10, fontSize:"0.8rem", color:"#fca5a5" },
     empty: { textAlign:"center", color:"#64748b", marginTop:50, padding:"0 10px", lineHeight:1.8 },
-    glossGrid: { width:"100%", margin:"24px 0 0", padding:"0 32px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14, boxSizing:"border-box" },
+    glossGrid: { width:"100%", margin:"24px 0 0", padding:"0 16px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,240px),1fr))", gap:14, boxSizing:"border-box" },
     glossCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:20, boxShadow:`0 0 12px ${c}10` }),
-    integGrid: { width:"100%", margin:"24px 0 0", padding:"0 32px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))", gap:14, boxSizing:"border-box" },
+    integGrid: { width:"100%", margin:"24px 0 0", padding:"0 16px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,260px),1fr))", gap:14, boxSizing:"border-box" },
     integCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:18, boxShadow:`0 0 12px ${c}10` }),
   };
 
@@ -2229,7 +2229,7 @@ export default function App() {
             </div>
 
             {/* INTEGRAL DEFINIDA */}
-            <div style={{ width:"100%", padding:"0 32px", boxSizing:"border-box", marginTop:20 }}>
+            <div style={{ width:"100%", padding:"0 16px", boxSizing:"border-box", marginTop:20 }}>
               <div style={{ ...glassCard, marginTop:0 }}>
                 <span style={{ fontSize:"0.85rem", fontWeight:700, color:"#38bdf8", display:"block", marginBottom:14 }}>∫ Integral Definida</span>
                 <p style={{ fontSize:"0.78rem", color:"#64748b", marginBottom:16, lineHeight:1.6 }}>
@@ -2333,7 +2333,7 @@ export default function App() {
             <p style={{ textAlign:"center", color:"#64748b", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
               MODO QUIZ — ADIVINA LA DERIVADA
             </p>
-            <div style={{ width:"100%", padding:"0 32px", boxSizing:"border-box", marginTop:16 }}>
+            <div style={{ width:"100%", padding:"0 16px", boxSizing:"border-box", marginTop:16 }}>
               <QuizMode />
             </div>
           </>
@@ -2391,6 +2391,11 @@ export default function App() {
         ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:transparent}
         ::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px}
         ::-webkit-scrollbar-thumb:hover{background:#4a5568}
+        @media (max-width: 480px) {
+          h1 { font-size: 1.4rem !important; letter-spacing: -0.5px !important; }
+          .katex { font-size: 0.95em !important; }
+          .katex-display { overflow-x: auto !important; }
+        }
         .katex { color: #e2e8f0 !important; }
         pre { color: #cbd5e1 !important; }
       `}</style>
