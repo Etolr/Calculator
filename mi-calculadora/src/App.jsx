@@ -1515,7 +1515,7 @@ function TabNotas({ notas, setNotas, notaActual, setNotaActual, notaInput, setNo
 // Obtén una en: https://aistudio.google.com/apikey (gratis)
 // ─────────────────────────────────────────────────────────────
 const GEMINI_API_KEY = "TU_API_KEY_AQUI";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`;
 
 const SYSTEM_PROMPT = `Eres NeoTutor, un asistente de cálculo diferencial e integral para estudiantes universitarios de segundo semestre. Eres experto en:
 - Derivadas (reglas de la potencia, producto, cociente, cadena, trigonométricas, exponenciales, logarítmicas)
@@ -1645,7 +1645,7 @@ function TabIATutor({ contextoCalculadora }) {
     }));
 
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${keyEfectivo}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${keyEfectivo}`;
       const body = {
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents,
