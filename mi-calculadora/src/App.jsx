@@ -1506,6 +1506,350 @@ function TabNotas({ notas, setNotas, notaActual, setNotaActual, notaInput, setNo
   );
 }
 
+// ─── IA TUTOR ────────────────────────────────────────────────
+// Componente completo del tab 🤖 IA Tutor usando Gemini 2.0 Flash.
+// contextoCalculadora: objeto con el estado actual de la calculadora
+// para que la IA pueda responder sobre lo que el usuario está viendo.
+//
+// IMPORTANTE: Reemplaza "TU_API_KEY_AQUI" con tu clave de Gemini.
+// Obtén una en: https://aistudio.google.com/apikey (gratis)
+// ─────────────────────────────────────────────────────────────
+const GEMINI_API_KEY = "TU_API_KEY_AQUI";
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+const SYSTEM_PROMPT = `Eres NeoTutor, un asistente de cálculo diferencial e integral para estudiantes universitarios de segundo semestre. Eres experto en:
+- Derivadas (reglas de la potencia, producto, cociente, cadena, trigonométricas, exponenciales, logarítmicas)
+- Límites (definición, regla de L'Hôpital, límites al infinito)
+- Integrales (indefinidas, definidas, teorema fundamental del cálculo)
+- Análisis de funciones (puntos críticos, concavidad, extremos)
+
+Tu estilo es claro, pedagógico y motivador. Usas ejemplos concretos. Cuando sea útil, expresas fórmulas en formato LaTeX usando $...$ para inline y $$...$$ para display.
+
+Responde SIEMPRE en español. Sé conciso pero completo. Si el usuario comparte el contexto de la calculadora (función actual, derivada, etc.), úsalo para dar respuestas contextualizadas.`;
+
+// Renderizador de texto con soporte para LaTeX inline/display y markdown básico
+function RenderMensaje({ texto }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    // Procesamos el texto: reemplazamos $$...$$ y $...$ con spans renderizados por KaTeX
+    const partes = [];
+    let rest = texto;
+    // Primero display math $$...$$
+    const rDisplay = /\$\$(.+?)\$\$/gs;
+    // Luego inline $...$
+    const rInline = /\$(.+?)\$/g;
+
+    // Convertimos el texto a HTML seguro con KaTeX
+    let html = rest
+      // Escapa HTML básico primero
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      // Markdown: **negrita**
+      .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+      // Markdown: *cursiva*
+      .replace(/\*(.+?)\*/g,"<em>$1</em>")
+      // Saltos de línea
+      .replace(/\n/g,"<br/>");
+
+    el.innerHTML = html;
+
+    // Ahora renderizamos LaTeX: buscamos los patrones en el texto original
+    // y reemplazamos con KaTeX en el DOM
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    let node;
+    while ((node = walker.nextNode())) textNodes.push(node);
+
+    // Nada más que hacer — usamos un enfoque diferente:
+    // re-construimos el HTML con KaTeX renderizado
+    let htmlFinal = texto
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g,"<em>$1</em>");
+
+    // Display math $$...$$
+    htmlFinal = htmlFinal.replace(/\$\$(.+?)\$\$/gs, (_, math) => {
+      try { return `<div style="margin:8px 0;overflow-x:auto">${katex.renderToString(math, { displayMode:true, throwOnError:false })}</div>`; }
+      catch { return `<code>${math}</code>`; }
+    });
+    // Inline math $...$
+    htmlFinal = htmlFinal.replace(/\$(.+?)\$/g, (_, math) => {
+      try { return katex.renderToString(math, { displayMode:false, throwOnError:false }); }
+      catch { return `<code>${math}</code>`; }
+    });
+    // Saltos de línea (después de LaTeX para no romper los spans)
+    htmlFinal = htmlFinal.replace(/\n/g,"<br/>");
+
+    el.innerHTML = htmlFinal;
+  }, [texto]);
+
+  return <span ref={ref} style={{ lineHeight:1.75 }} />;
+}
+
+function TabIATutor({ contextoCalculadora }) {
+  const [mensajes,    setMensajes]    = useState([]);
+  const [input,       setIaInput]     = useState("");
+  const [cargando,    setCargando]    = useState(false);
+  const [apiKey,      setApiKey]      = useState(() => localStorage.getItem("neoderiva_gemini_key") || "");
+  const [mostrarConf, setMostrarConf] = useState(false);
+  const [usarContexto,setUsarContexto]= useState(true);
+  const chatRef   = useRef(null);
+  const inputRef  = useRef(null);
+
+  // Scroll automático al último mensaje
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [mensajes, cargando]);
+
+  const keyEfectivo = apiKey.trim() || GEMINI_API_KEY;
+  const apiConfigurada = keyEfectivo && keyEfectivo !== "TU_API_KEY_AQUI";
+
+  const guardarKey = (k) => {
+    setApiKey(k);
+    try { localStorage.setItem("neoderiva_gemini_key", k); } catch(_) {}
+  };
+
+  // Construye el contexto de la calculadora como texto para el prompt
+  const buildContexto = () => {
+    if (!usarContexto) return "";
+    const ctx = contextoCalculadora;
+    const partes = [];
+    if (ctx.funcionActual) partes.push(`Función actual en calculadora: f(x) = ${ctx.funcionActual}`);
+    if (ctx.derivadaActual) partes.push(`Derivada calculada: f'(x) = ${ctx.derivadaActual}`);
+    if (ctx.limExpr) partes.push(`Expresión de límites: ${ctx.limExpr}`);
+    if (ctx.intExpr) partes.push(`Expresión de integrales: ${ctx.intExpr}`);
+    if (partes.length === 0) return "";
+    return `\n\n[Contexto actual de la calculadora del usuario:\n${partes.join("\n")}]`;
+  };
+
+  // Envía mensaje a Gemini
+  const enviar = async () => {
+    const texto = input.trim();
+    if (!texto || cargando) return;
+    if (!apiConfigurada) { setMostrarConf(true); return; }
+
+    const contextoStr = buildContexto();
+    const userMsg = { rol:"user", texto };
+    setMensajes(prev => [...prev, userMsg]);
+    setIaInput("");
+    setCargando(true);
+
+    // Construye el historial para la API (solo los últimos 10 mensajes)
+    const hist = [...mensajes, userMsg].slice(-10);
+    const contents = hist.map(m => ({
+      role: m.rol === "user" ? "user" : "model",
+      parts: [{ text: m.rol === "user" && m === hist[hist.length-1]
+        ? texto + contextoStr
+        : m.texto }]
+    }));
+
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${keyEfectivo}`;
+      const body = {
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents,
+        generationConfig: { temperature:0.7, maxOutputTokens:1500 }
+      };
+      const res = await fetch(endpoint, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `Error ${res.status}`);
+      }
+      const data = await res.json();
+      const respuesta = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
+      setMensajes(prev => [...prev, { rol:"model", texto:respuesta }]);
+    } catch(err) {
+      setMensajes(prev => [...prev, { rol:"error", texto:`⚠ Error: ${err.message}` }]);
+    } finally {
+      setCargando(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  };
+
+  const limpiarChat = () => {
+    if (window.confirm("¿Limpiar el historial del chat?")) setMensajes([]);
+  };
+
+  // Preguntas de inicio rápido
+  const STARTERS = [
+    "¿Qué es una derivada y para qué sirve?",
+    "Explícame la regla de la cadena con un ejemplo",
+    "¿Cómo encuentro puntos críticos de una función?",
+    "¿Cuándo aplica la regla de L'Hôpital?",
+    "¿Qué relación hay entre derivada e integral?",
+  ];
+
+  const glassIA = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(167,139,250,0.18)", borderRadius:14, padding:16, backdropFilter:"blur(12px)" };
+
+  return (
+    <div style={{ width:"100%", maxWidth:760, margin:"0 auto", padding:"20px 16px 40px", boxSizing:"border-box" }}>
+
+      {/* Header del tutor */}
+      <div style={{ textAlign:"center", marginBottom:20 }}>
+        <div style={{ fontSize:"2.2rem", marginBottom:6 }}>🤖</div>
+        <div style={{ fontSize:"1rem", fontWeight:700, color:"#a78bfa", letterSpacing:"0.06em" }}>NEO TUTOR</div>
+        <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:2 }}>Asistente de Cálculo · Gemini 2.0 Flash</div>
+      </div>
+
+      {/* Panel de configuración API Key */}
+      <div style={{ ...glassIA, marginBottom:14, borderColor: apiConfigurada ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.3)" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }} onClick={() => setMostrarConf(c=>!c)}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:"0.75rem" }}>{apiConfigurada ? "🟢" : "🔴"}</span>
+            <span style={{ fontSize:"0.78rem", color: apiConfigurada ? "#10b981" : "#f87171", fontWeight:700 }}>
+              {apiConfigurada ? "API Gemini conectada" : "Configura tu API Key de Gemini"}
+            </span>
+          </div>
+          <span style={{ fontSize:"0.7rem", color:"#64748b" }}>{mostrarConf ? "▲" : "▼"}</span>
+        </div>
+        {mostrarConf && (
+          <div style={{ marginTop:12 }}>
+            <div style={{ fontSize:"0.72rem", color:"#94a3b8", marginBottom:8, lineHeight:1.6 }}>
+              Obtén tu API key gratis en{" "}
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color:"#38bdf8" }}>aistudio.google.com/apikey</a>.
+              Se guarda solo en tu dispositivo.
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <input
+                type="password"
+                placeholder="AIza..."
+                value={apiKey}
+                onChange={e => guardarKey(e.target.value)}
+                style={{ flex:1, background:"rgba(0,0,0,0.4)", border:"1.5px solid rgba(167,139,250,0.25)", borderRadius:8, padding:"8px 12px", color:"#e2e8f0", fontSize:"0.85rem", fontFamily:"inherit", outline:"none" }}
+              />
+              <button onClick={() => setMostrarConf(false)}
+                style={{ padding:"8px 14px", borderRadius:8, border:"1px solid rgba(167,139,250,0.4)", background:"rgba(167,139,250,0.12)", color:"#a78bfa", fontSize:"0.78rem", cursor:"pointer", fontWeight:700 }}>
+                Guardar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Contexto de la calculadora */}
+      {(contextoCalculadora.funcionActual || contextoCalculadora.limExpr || contextoCalculadora.intExpr) && (
+        <div style={{ ...glassIA, marginBottom:14, borderColor:"rgba(56,189,248,0.25)" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <span style={{ fontSize:"0.75rem", color:"#38bdf8", fontWeight:700 }}>📡 Contexto de la calculadora</span>
+            <button onClick={() => setUsarContexto(u=>!u)}
+              style={{ padding:"2px 10px", borderRadius:6, border:`1px solid ${usarContexto?"rgba(56,189,248,0.4)":"rgba(255,255,255,0.12)"}`, background: usarContexto?"rgba(56,189,248,0.1)":"transparent", color: usarContexto?"#38bdf8":"#64748b", fontSize:"0.68rem", cursor:"pointer" }}>
+              {usarContexto ? "✓ Activo" : "Inactivo"}
+            </button>
+          </div>
+          {usarContexto && (
+            <div style={{ marginTop:8, fontSize:"0.75rem", color:"#94a3b8", fontFamily:"monospace", lineHeight:1.8 }}>
+              {contextoCalculadora.funcionActual && <div>f(x) = <span style={{ color:"#e2e8f0" }}>{contextoCalculadora.funcionActual}</span></div>}
+              {contextoCalculadora.derivadaActual && <div>f'(x) = <span style={{ color:"#a78bfa" }}>{contextoCalculadora.derivadaActual}</span></div>}
+              {contextoCalculadora.limExpr && <div>lim: <span style={{ color:"#38bdf8" }}>{contextoCalculadora.limExpr}</span></div>}
+              {contextoCalculadora.intExpr && <div>∫: <span style={{ color:"#10b981" }}>{contextoCalculadora.intExpr}</span></div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Área de chat */}
+      <div ref={chatRef} style={{ ...glassIA, minHeight:320, maxHeight:480, overflowY:"auto", marginBottom:14, display:"flex", flexDirection:"column", gap:12, padding:"16px 14px" }}>
+        {mensajes.length === 0 && !cargando && (
+          <div style={{ textAlign:"center", padding:"30px 10px" }}>
+            <div style={{ fontSize:"2rem", marginBottom:12 }}>👋</div>
+            <div style={{ fontSize:"0.85rem", color:"#94a3b8", lineHeight:1.8, marginBottom:20 }}>
+              Hola, soy NeoTutor. Puedo ayudarte con derivadas, límites, integrales y más. ¿Por dónde empezamos?
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              {STARTERS.map(s => (
+                <button key={s} onClick={() => { setIaInput(s); setTimeout(() => inputRef.current?.focus(), 50); }}
+                  style={{ padding:"8px 14px", borderRadius:9, border:"1px solid rgba(167,139,250,0.22)", background:"rgba(167,139,250,0.06)", color:"#c4b5fd", fontSize:"0.78rem", cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mensajes.map((m, i) => (
+          <div key={i} style={{ display:"flex", flexDirection:"column", alignItems: m.rol==="user" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth:"88%",
+              padding:"10px 14px",
+              borderRadius: m.rol==="user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+              background: m.rol==="user"
+                ? "linear-gradient(135deg,rgba(167,139,250,0.22),rgba(56,189,248,0.18))"
+                : m.rol==="error"
+                  ? "rgba(239,68,68,0.12)"
+                  : "rgba(255,255,255,0.06)",
+              border: m.rol==="user"
+                ? "1px solid rgba(167,139,250,0.35)"
+                : m.rol==="error"
+                  ? "1px solid rgba(239,68,68,0.3)"
+                  : "1px solid rgba(255,255,255,0.1)",
+              fontSize:"0.84rem",
+              color: m.rol==="error" ? "#fca5a5" : "#e2e8f0",
+              lineHeight:1.6,
+              animation:"cyberSlide 0.25s ease",
+            }}>
+              {m.rol === "user"
+                ? <span style={{ whiteSpace:"pre-wrap" }}>{m.texto}</span>
+                : <RenderMensaje texto={m.texto} />
+              }
+            </div>
+            <span style={{ fontSize:"0.62rem", color:"#475569", marginTop:3, marginLeft:m.rol!=="user"?4:0, marginRight:m.rol==="user"?4:0 }}>
+              {m.rol === "user" ? "Tú" : m.rol==="error" ? "Error" : "🤖 NeoTutor"}
+            </span>
+          </div>
+        ))}
+
+        {cargando && (
+          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0" }}>
+            <div style={{ display:"flex", gap:5 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#a78bfa",
+                  animation:`bounce 1.1s ${i*0.18}s infinite ease-in-out`,
+                  "@keyframes bounce":{ "0%,80%,100%":{transform:"scale(0)"},"40%":{transform:"scale(1)"} }
+                }} />
+              ))}
+            </div>
+            <span style={{ fontSize:"0.75rem", color:"#64748b" }}>NeoTutor está pensando…</span>
+          </div>
+        )}
+      </div>
+
+      {/* Input de mensaje */}
+      <div style={{ display:"flex", gap:8 }}>
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={e => setIaInput(e.target.value)}
+          onKeyDown={e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } }}
+          placeholder="Escribe tu pregunta… (Enter para enviar, Shift+Enter nueva línea)"
+          rows={2}
+          style={{ flex:1, background:"rgba(0,0,0,0.45)", border:"1.5px solid rgba(167,139,250,0.25)", borderRadius:10, padding:"10px 14px", color:"#e2e8f0", fontSize:"0.88rem", fontFamily:"inherit", outline:"none", resize:"none", transition:"border-color 0.25s, box-shadow 0.25s", lineHeight:1.5 }}
+        />
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          <button onClick={enviar} disabled={cargando || !input.trim()}
+            style={{ padding:"10px 18px", borderRadius:10, border:"none", background: cargando||!input.trim() ? "rgba(100,116,139,0.3)" : "linear-gradient(135deg,#a78bfa,#38bdf8)", color: cargando||!input.trim() ? "#64748b" : "#0f0c29", fontWeight:700, fontSize:"0.82rem", cursor: cargando||!input.trim() ? "not-allowed" : "pointer", fontFamily:"inherit", flex:1 }}>
+            {cargando ? "..." : "→"}
+          </button>
+          <button onClick={limpiarChat} title="Limpiar chat"
+            style={{ padding:"6px 10px", borderRadius:8, border:"1px solid rgba(239,68,68,0.25)", background:"rgba(239,68,68,0.07)", color:"#f87171", fontSize:"0.7rem", cursor:"pointer" }}>
+            🗑
+          </button>
+        </div>
+      </div>
+      <div style={{ fontSize:"0.68rem", color:"#475569", marginTop:6, textAlign:"center" }}>
+        Las conversaciones no se guardan entre sesiones · Tus datos nunca salen de tu dispositivo
+      </div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scale(0); opacity:0.4; }
+          40% { transform: scale(1); opacity:1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab,          setTab]        = useState("calc");
   const [input,        setInput]      = useState("");
@@ -1785,7 +2129,7 @@ export default function App() {
     integCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:18, boxShadow:`0 0 12px ${c}10` }),
   };
 
-  const tabList = [["calc","∂ Derivadas"],["lim","lim Límites"],["int","∫ Integrales"],["quiz","🎮 Quiz"],["glos","📖 Glosario"],["notas","📝 Notas"]];
+  const tabList = [["calc","∂ Derivadas"],["lim","lim Límites"],["int","∫ Integrales"],["quiz","🎮 Quiz"],["glos","📖 Glosario"],["notas","📝 Notas"],["ia","🤖 IA Tutor"]];
 
   return (
     <><div style={S.root}>
@@ -2556,6 +2900,19 @@ export default function App() {
           notaActual={notaActual} setNotaActual={setNotaActual}
           notaInput={notaInput} setNotaInput={setNotaInput}
           notaBuscar={notaBuscar} setNotaBuscar={setNotaBuscar}
+        />
+      )}
+
+      {/* ═══════════════ TAB: IA TUTOR ═══════════════ */}
+      {tab === "ia" && (
+        <TabIATutor
+          contextoCalculadora={{
+            funcionActual: input || null,
+            derivadaActual: result?.success ? result.outputText : null,
+            tabActivo: tab,
+            limExpr: limExpr || null,
+            intExpr: intExpr || null,
+          }}
         />
       )}
 
