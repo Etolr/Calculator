@@ -1622,26 +1622,26 @@ export default function App() {
     root: { minHeight:"100vh", background:"linear-gradient(135deg,#060612 0%,#0d0a2a 40%,#10082a 70%,#060612 100%)", fontFamily:"'Space Mono','DM Mono','Fira Code',monospace", color:"#e2e8f0", paddingBottom:80 },
     header: { textAlign:"center", padding:"60px 20px 0", position:"relative" },
     title: { fontSize:"clamp(1.6rem,5vw,2.8rem)", fontWeight:700, background:"linear-gradient(90deg,#ff6ee4,#a78bfa,#38bdf8,#34d399)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", margin:0, letterSpacing:"-1px", filter:"drop-shadow(0 0 20px #a78bfa44)" },
-    subtitle: { color:"#4a5568", fontSize:"0.8rem", marginTop:4, letterSpacing:"0.1em", textTransform:"uppercase" },
+    subtitle: { color:"#94a3b8", fontSize:"0.8rem", marginTop:4, letterSpacing:"0.1em", textTransform:"uppercase" },
     badge: { display:"inline-block", marginTop:8, fontSize:"0.65rem", color:"#38bdf8", border:"1px solid #38bdf833", background:"#38bdf80a", padding:"3px 12px", borderRadius:999, letterSpacing:"0.12em" },
     tabs: { display:"flex", justifyContent:"center", gap:4, marginTop:20, flexWrap:"wrap", padding:"0 12px" },
-    tab: (active) => ({ padding:"8px 16px", borderRadius:999, border:`1px solid ${active?"transparent":"rgba(255,255,255,0.1)"}`, cursor:"pointer", fontSize:"0.78rem", fontWeight:700, letterSpacing:"0.06em", transition:"all 0.2s",
-      background:active?"linear-gradient(135deg,#a78bfa,#38bdf8)":"rgba(255,255,255,0.04)",
-      color:active?"#0f0c29":"#64748b", boxShadow:active?"0 0 16px #a78bfa44":"none" }),
+    tab: (active) => ({ padding:"8px 16px", borderRadius:999, border:`1px solid ${active?"transparent":"rgba(255,255,255,0.15)"}`, cursor:"pointer", fontSize:"0.78rem", fontWeight:700, letterSpacing:"0.06em", transition:"all 0.25s cubic-bezier(.4,0,.2,1)",
+      background:active?"linear-gradient(135deg,#a78bfa,#38bdf8)":"rgba(255,255,255,0.06)",
+      color:active?"#0f0c29":"#94a3b8", boxShadow:active?"0 0 20px #a78bfa55":"none" }),
     grid: { width:"100%", padding:"32px 32px 0", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(360px,1fr))", gap:24, boxSizing:"border-box" },
     card: { ...glassCard, marginTop:0 },
     fullWrap: { width:"100%", padding:"0 32px", boxSizing:"border-box" },
     graphCard: { ...glassCard },
-    label: { fontSize:"0.65rem", letterSpacing:"0.12em", color:"#4a5568", textTransform:"uppercase", marginBottom:6, display:"block" },
-    inputBox: { width:"100%", background:"rgba(0,0,0,0.4)", border:"1.5px solid rgba(167,139,250,0.25)", borderRadius:10, padding:"12px 14px", color:"#e2e8f0", fontSize:"1rem", fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.2s" },
+    label: { fontSize:"0.65rem", letterSpacing:"0.12em", color:"#94a3b8", textTransform:"uppercase", marginBottom:6, display:"block" },
+    inputBox: { width:"100%", background:"rgba(0,0,0,0.4)", border:"1.5px solid rgba(167,139,250,0.25)", borderRadius:10, padding:"12px 14px", color:"#e2e8f0", fontSize:"1rem", fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.25s, box-shadow 0.25s" },
     btn: { ...cyberBtn, width:"100%", marginTop:14, padding:13, display:"block" },
     kbGrid4: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:4, marginTop:12 },
     kbGrid5: { display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:4, marginBottom:4 },
-    kbBtn: (g) => { const [bg,col]=KB_COLORS[g]||KB_COLORS.num; return { padding:"8px 4px", borderRadius:7, border:`1px solid ${col}33`, background:bg, color:col, cursor:"pointer", fontSize:"0.8rem", fontWeight:600 }; },
+    kbBtn: (g) => { const [bg,col]=KB_COLORS[g]||KB_COLORS.num; return { padding:"8px 4px", borderRadius:7, border:`1px solid ${col}33`, background:bg, color:col, cursor:"pointer", fontSize:"0.8rem", fontWeight:600, transition:"all 0.15s" }; },
     ruleCard: (c) => ({ borderLeft:`4px solid ${c}`, background:`${c}10`, borderRadius:"0 12px 12px 0", padding:"14px 18px", marginBottom:16, boxShadow:`0 0 12px ${c}22` }),
     resultBox: (accent) => ({ background:accent?"rgba(167,139,250,0.08)":"rgba(0,0,0,0.25)", border:accent?"1px solid rgba(167,139,250,0.3)":"1px solid rgba(255,255,255,0.05)", borderRadius:10, padding:16, textAlign:"center" }),
     error: { background:"#ef444415", border:"1px solid #ef444444", borderRadius:8, padding:"9px 12px", marginTop:10, fontSize:"0.8rem", color:"#fca5a5" },
-    empty: { textAlign:"center", color:"#2d3748", marginTop:50, padding:"0 10px", lineHeight:1.8 },
+    empty: { textAlign:"center", color:"#64748b", marginTop:50, padding:"0 10px", lineHeight:1.8 },
     glossGrid: { width:"100%", margin:"24px 0 0", padding:"0 32px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14, boxSizing:"border-box" },
     glossCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:20, boxShadow:`0 0 12px ${c}10` }),
     integGrid: { width:"100%", margin:"24px 0 0", padding:"0 32px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))", gap:14, boxSizing:"border-box" },
@@ -1686,6 +1686,30 @@ export default function App() {
                 />
                 {error && <div style={S.error}>⚠ {error}</div>}
                 <button style={S.btn} onClick={handleDerive}>CALCULAR DERIVADA →</button>
+
+                {/* Ejemplos predefinidos */}
+                <div style={{ marginTop:16 }}>
+                  <span style={S.label}>ejemplos rápidos</span>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {[
+                      { label:"x³",           fn:"x^3" },
+                      { label:"sin(x)",        fn:"sin(x)" },
+                      { label:"eˣ",            fn:"e^x" },
+                      { label:"ln(x)",         fn:"ln(x)" },
+                      { label:"x²+3x",         fn:"x^2+3*x" },
+                      { label:"x·sin(x)",      fn:"x*sin(x)" },
+                      { label:"sin(x²)",       fn:"sin(x^2)" },
+                      { label:"x⁴−4x²",        fn:"x^4-4*x^2" },
+                    ].map(ej => (
+                      <button key={ej.fn} onClick={() => { setInput(ej.fn); setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setCriticos(null); }}
+                        style={{ padding:"5px 12px", borderRadius:8, border:"1px solid rgba(167,139,250,0.25)", background:"rgba(167,139,250,0.07)", color:"#c4b5fd", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}
+                        onMouseEnter={e => { e.target.style.background="rgba(167,139,250,0.18)"; e.target.style.borderColor="rgba(167,139,250,0.6)"; }}
+                        onMouseLeave={e => { e.target.style.background="rgba(167,139,250,0.07)"; e.target.style.borderColor="rgba(167,139,250,0.25)"; }}>
+                        {ej.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div style={{ marginTop:18 }}>
                   <span style={S.label}>teclado rápido</span>
                   <div style={S.kbGrid5}>
@@ -1708,7 +1732,7 @@ export default function App() {
                   <div style={S.empty}>
                     <div style={{ fontSize:"2.5rem", marginBottom:10, opacity:0.3 }}>∂</div>
                     <p>Ingresa una función y pulsa<br/><strong style={{color:"#a78bfa"}}>CALCULAR DERIVADA</strong></p>
-                    <p style={{fontSize:"0.75rem", color:"#2d3748", marginTop:12}}>Prueba: x^3 + sin(x)</p>
+                    <p style={{fontSize:"0.75rem", color:"#64748b", marginTop:12}}>Prueba: x^3 + sin(x)</p>
                   </div>
                 )}
                 {ruleInfo && (
@@ -1733,7 +1757,7 @@ export default function App() {
                         <KaTeX formula={`f'(x) = ${result.outputLatex}`} display={true} />
                       </div>
                     </div>
-                    <div style={{ marginTop:8, fontSize:"0.72rem", color:"#2d3748", textAlign:"center" }}>
+                    <div style={{ marginTop:8, fontSize:"0.72rem", color:"#64748b", textAlign:"center" }}>
                       Texto: f'(x) = {result.outputText}
                     </div>
                   </div>
@@ -1747,7 +1771,7 @@ export default function App() {
               <div style={S.fullWrap}>
                 <div style={{ ...S.graphCard, animation:"cyberSlide 0.6s ease" }}>
                   <span style={S.label}>visualización gráfica</span>
-                  <p style={{ fontSize:"0.75rem", color:"#4a5568", margin:"4px 0 14px" }}>
+                  <p style={{ fontSize:"0.75rem", color:"#94a3b8", margin:"4px 0 14px" }}>
                     <strong style={{color:"#a78bfa"}}>— f(x)</strong> &nbsp;·&nbsp; <strong style={{color:"#38bdf8"}}>- - f'(x)</strong>
                   </p>
                   <ResponsiveContainer width="100%" height={260}>
@@ -1761,7 +1785,7 @@ export default function App() {
                       <Line type="monotone" dataKey="dfx" stroke="#38bdf8" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={false} />
                     </LineChart>
                   </ResponsiveContainer>
-                  <p style={{ fontSize:"0.75rem", color:"#4a5568", marginTop:10, lineHeight:1.7 }}>
+                  <p style={{ fontSize:"0.75rem", color:"#94a3b8", marginTop:10, lineHeight:1.7 }}>
                     💡 Donde f(x) tiene un máximo o mínimo, f'(x) cruza el eje x. Donde f(x) crece, f'(x) es positiva.
                   </p>
                 </div>
@@ -1808,7 +1832,7 @@ export default function App() {
                       })()}
 
                       {criticos.puntos.length === 0 ? (
-                        <div style={{ textAlign:"center", color:"#4a5568", padding:"20px 0" }}>No se encontraron puntos críticos en [-10, 10]</div>
+                        <div style={{ textAlign:"center", color:"#94a3b8", padding:"20px 0" }}>No se encontraron puntos críticos en [-10, 10]</div>
                       ) : (
                         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
                           {criticos.puntos.map((p, i) => {
@@ -1846,7 +1870,7 @@ export default function App() {
                     </>
                   )}
                   {!criticos && (
-                    <div style={{ textAlign:"center", color:"#2d3748", padding:"20px 0", fontSize:"0.82rem" }}>
+                    <div style={{ textAlign:"center", color:"#64748b", padding:"20px 0", fontSize:"0.82rem" }}>
                       Pulsa <strong style={{color:"#f59e0b"}}>Analizar f(x)</strong> para encontrar máximos, mínimos e inflexiones
                     </div>
                   )}
@@ -1923,7 +1947,7 @@ export default function App() {
                 </div>
 
                 <div style={{ marginTop:16, padding:"14px", background:"rgba(0,0,0,0.25)", borderRadius:12, border:"1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ fontSize:"0.65rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Ejemplos clásicos</div>
+                  <div style={{ fontSize:"0.65rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Ejemplos clásicos</div>
                   {[
                     { f:"sin(x)/x",        p:"0", label:"0/0 clásico" },
                     { f:"(x^2-1)/(x-1)",  p:"1", label:"Removible 0/0" },
@@ -1936,7 +1960,7 @@ export default function App() {
                       style={{ display:"block", width:"100%", marginBottom:5, padding:"7px 12px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", background:"rgba(255,255,255,0.03)", color:"#64748b", fontSize:"0.75rem", cursor:"pointer", textAlign:"left" }}
                       onMouseOver={e=>{e.currentTarget.style.borderColor="#38bdf855";e.currentTarget.style.color="#38bdf8";}}
                       onMouseOut={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.08)";e.currentTarget.style.color="#64748b";}}>
-                      <span style={{color:"#38bdf8"}}>f(x) = </span>{ex.f} &nbsp;<span style={{color:"#4a5568"}}>x → {ex.p}</span>
+                      <span style={{color:"#38bdf8"}}>f(x) = </span>{ex.f} &nbsp;<span style={{color:"#94a3b8"}}>x → {ex.p}</span>
                     </button>
                   ))}
                 </div>
@@ -2008,7 +2032,7 @@ export default function App() {
                     </LineChart>
                   </ResponsiveContainer>
                   {limResult?.exists && (
-                    <p style={{ fontSize:"0.75rem", color:"#4a5568", marginTop:10 }}>
+                    <p style={{ fontSize:"0.75rem", color:"#94a3b8", marginTop:10 }}>
                       La función se aproxima a <strong style={{color:"#10b981"}}>{limResult.exact?.toFixed(4)}</strong> cuando x → {limPoint}
                     </p>
                   )}
@@ -2078,7 +2102,7 @@ export default function App() {
                   <div style={S.empty}>
                     <div style={{ fontSize:"2.5rem", marginBottom:10, opacity:0.3 }}>∫</div>
                     <p>Ingresa una función y pulsa<br/><strong style={{color:"#a78bfa"}}>CALCULAR INTEGRAL</strong></p>
-                    <p style={{fontSize:"0.75rem", color:"#2d3748", marginTop:12}}>
+                    <p style={{fontSize:"0.75rem", color:"#64748b", marginTop:12}}>
                       Soporta: x^n · sin(x) · cos(x) · tan(x) · e^x · ln(x) · 1/x · sqrt(x) · constantes
                     </p>
                   </div>
@@ -2113,7 +2137,7 @@ export default function App() {
                         <KaTeX formula={intResult.resultLatex} display={true} />
                       </div>
                     </div>
-                    <div style={{ marginTop:8, fontSize:"0.72rem", color:"#2d3748", textAlign:"center" }}>
+                    <div style={{ marginTop:8, fontSize:"0.72rem", color:"#64748b", textAlign:"center" }}>
                       Texto: F(x) = {intResult.resultText} + C
                     </div>
                   </div>
@@ -2157,7 +2181,7 @@ export default function App() {
                     </div>
                     {/* Resultado */}
                     <div style={{ background:"rgba(56,189,248,0.08)", border:"1px solid rgba(56,189,248,0.3)", borderRadius:12, padding:"18px", textAlign:"center", marginBottom:14, boxShadow:"0 0 20px rgba(56,189,248,0.1)" }}>
-                      <div style={{ fontSize:"0.65rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Área bajo la curva</div>
+                      <div style={{ fontSize:"0.65rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Área bajo la curva</div>
                       <div style={{ fontSize:"2rem", fontWeight:900, color:"#38bdf8", fontFamily:"monospace" }}>
                         {defResult.result}
                       </div>
@@ -2182,7 +2206,7 @@ export default function App() {
                   <div style={S.error}>⚠ {defResult.error}</div>
                 )}
                 {!defResult && (
-                  <div style={{ textAlign:"center", color:"#2d3748", padding:"16px 0", fontSize:"0.82rem" }}>
+                  <div style={{ textAlign:"center", color:"#64748b", padding:"16px 0", fontSize:"0.82rem" }}>
                     Ingresa una función arriba, define los límites a y b, y pulsa <strong style={{color:"#38bdf8"}}>CALCULAR ÁREA</strong>
                   </div>
                 )}
@@ -2210,14 +2234,14 @@ export default function App() {
                 <div key={item.name} style={S.integCard(item.color)}>
                   <div style={{ fontWeight:700, color:item.color, marginBottom:10, fontSize:"0.82rem" }}>{item.name}</div>
                   <div style={{ marginBottom:8 }}>
-                    <span style={{ fontSize:"0.62rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.08em" }}>Integral</span>
+                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Integral</span>
                     <div style={{ marginTop:6 }}><KaTeX formula={item.integral} display={true} /></div>
                   </div>
                   <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8, marginBottom:8 }}>
-                    <span style={{ fontSize:"0.62rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.08em" }}>Resultado</span>
+                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Resultado</span>
                     <div style={{ marginTop:6 }}><KaTeX formula={item.result} display={true} /></div>
                   </div>
-                  <div style={{ fontSize:"0.72rem", color:"#4a5568", lineHeight:1.55, borderTop:"1px solid rgba(255,255,255,0.04)", paddingTop:8 }}>
+                  <div style={{ fontSize:"0.72rem", color:"#94a3b8", lineHeight:1.55, borderTop:"1px solid rgba(255,255,255,0.04)", paddingTop:8 }}>
                     {item.tip}
                   </div>
                 </div>
@@ -2229,7 +2253,7 @@ export default function App() {
         {/* ═══════════════ TAB: QUIZ ═══════════════ */}
         {tab==="quiz" && (
           <>
-            <p style={{ textAlign:"center", color:"#2d3748", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
+            <p style={{ textAlign:"center", color:"#64748b", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
               MODO QUIZ — ADIVINA LA DERIVADA
             </p>
             <div style={{ width:"100%", padding:"0 32px", boxSizing:"border-box", marginTop:16 }}>
@@ -2241,7 +2265,7 @@ export default function App() {
         {/* ═══════════════ TAB: GLOSARIO ═══════════════ */}
         {tab==="glos" && (
           <>
-            <p style={{ textAlign:"center", color:"#2d3748", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
+            <p style={{ textAlign:"center", color:"#64748b", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
               REGLAS FUNDAMENTALES DE DERIVACIÓN
             </p>
             <div style={S.glossGrid}>
@@ -2249,13 +2273,13 @@ export default function App() {
                 <div key={item.name} style={S.glossCard(item.color)}>
                   <div style={{ fontWeight:700, color:item.color, marginBottom:10, fontSize:"0.82rem" }}>{item.name}</div>
                   <div style={{ marginBottom:8 }}>
-                    <span style={{ fontSize:"0.62rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.08em" }}>Regla general</span>
+                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Regla general</span>
                     <div style={{ marginTop:4 }}>
                       <KaTeX formula={`\\dfrac{d}{dx}\\left[${item.formula}\\right] = ${item.deriv}`} display={true} />
                     </div>
                   </div>
                   <div>
-                    <span style={{ fontSize:"0.62rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.08em" }}>Ejemplo</span>
+                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Ejemplo</span>
                     <div style={{ marginTop:4 }}><KaTeX formula={item.example} /></div>
                   </div>
                 </div>
@@ -2267,12 +2291,31 @@ export default function App() {
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
-        @keyframes cyberSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        button:active { transform:scale(0.95); }
-        input:focus { border-color:rgba(167,139,250,0.6) !important; box-shadow:0 0 0 3px rgba(167,139,250,0.08), 0 0 16px rgba(167,139,250,0.1); }
+        @keyframes cyberSlide {
+          from { opacity:0; transform:translateY(14px) scale(0.98); }
+          to   { opacity:1; transform:translateY(0)   scale(1);    }
+        }
+        @keyframes fadeIn {
+          from { opacity:0; }
+          to   { opacity:1; }
+        }
+        @keyframes pulseGlow {
+          0%,100% { box-shadow: 0 0 8px #a78bfa44; }
+          50%      { box-shadow: 0 0 22px #a78bfa88; }
+        }
+        button { transition: all 0.18s cubic-bezier(.4,0,.2,1) !important; }
+        button:active { transform:scale(0.94) !important; }
+        button:hover  { filter: brightness(1.12); }
+        input:focus {
+          border-color:rgba(167,139,250,0.7) !important;
+          box-shadow:0 0 0 3px rgba(167,139,250,0.1), 0 0 20px rgba(167,139,250,0.15) !important;
+        }
         *{box-sizing:border-box;margin:0;padding:0} body{margin:0}
-        ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#1e2d4d;border-radius:3px}
-        ::-webkit-scrollbar-thumb:hover{background:#334155}
+        ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px}
+        ::-webkit-scrollbar-thumb:hover{background:#4a5568}
+        .katex { color: #e2e8f0 !important; }
+        pre { color: #cbd5e1 !important; }
       `}</style>
     </div>
   );
