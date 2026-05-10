@@ -48,7 +48,7 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ReferenceDot
 } from "recharts";
 
 // ─── KATEX ───────────────────────────────────────────────────
@@ -1839,6 +1839,15 @@ export default function App() {
                       <Legend formatter={v=>v==="fx"?"f(x)":"f'(x)"} wrapperStyle={{fontSize:12,color:"#64748b"}} />
                       <Line type="monotone" dataKey="fx"  stroke="#a78bfa" strokeWidth={2.5} dot={false} connectNulls={false} />
                       <Line type="monotone" dataKey="dfx" stroke="#38bdf8" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={false} />
+                      {/* Puntos críticos marcados sobre la curva */}
+                      {criticos?.success && criticos.puntos.map((p, i) => {
+                        const col = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":"#38bdf8";
+                        const label = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":"↔";
+                        return (
+                          <ReferenceDot key={i} x={p.x} y={p.y} r={6} fill={col} stroke="#0d0a2a" strokeWidth={2}
+                            label={{ value:label, position:"top", fill:col, fontSize:12 }} />
+                        );
+                      })}
                     </LineChart>
                   </ResponsiveContainer>
 
