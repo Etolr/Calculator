@@ -1382,6 +1382,130 @@ const cyberBtn = {
 };
 
 // ─── APP PRINCIPAL ────────────────────────────────────────────
+// ─── TAB NOTAS ───────────────────────────────────────────────
+// Componente separado para evitar IIFEs en JSX.
+// Recibe todos los estados de notas como props desde App.
+// ─────────────────────────────────────────────────────────────
+function TabNotas({ notas, setNotas, notaActual, setNotaActual, notaInput, setNotaInput, notaBuscar, setNotaBuscar }) {
+  const guardarNota = () => {
+    if (!notaInput.titulo.trim() && !notaInput.contenido.trim()) return;
+    let nuevasNotas;
+    if (notaActual) {
+      nuevasNotas = notas.map(n => n.id === notaActual.id
+        ? { ...n, titulo: notaInput.titulo || "Sin título", contenido: notaInput.contenido, fecha: new Date().toISOString() }
+        : n
+      );
+    } else {
+      const nueva = { id: Date.now(), titulo: notaInput.titulo || "Sin título", contenido: notaInput.contenido, fecha: new Date().toISOString() };
+      nuevasNotas = [nueva, ...notas];
+    }
+    setNotas(nuevasNotas);
+    try { localStorage.setItem("neoderiva_notas", JSON.stringify(nuevasNotas)); } catch {}
+    setNotaActual(null);
+    setNotaInput({ titulo: "", contenido: "" });
+  };
+
+  const borrarNota = (id) => {
+    if (!window.confirm("¿Borrar esta nota?")) return;
+    const nuevasNotas = notas.filter(n => n.id !== id);
+    setNotas(nuevasNotas);
+    try { localStorage.setItem("neoderiva_notas", JSON.stringify(nuevasNotas)); } catch {}
+    if (notaActual?.id === id) { setNotaActual(null); setNotaInput({ titulo: "", contenido: "" }); }
+  };
+
+  const editarNota = (nota) => { setNotaActual(nota); setNotaInput({ titulo: nota.titulo, contenido: nota.contenido }); };
+  const nuevaNota  = () => { setNotaActual(null); setNotaInput({ titulo: "", contenido: "" }); };
+  const notasFiltradas = notas.filter(n =>
+    n.titulo.toLowerCase().includes(notaBuscar.toLowerCase()) ||
+    n.contenido.toLowerCase().includes(notaBuscar.toLowerCase())
+  );
+
+  const btnAmarillo = { fontFamily: "inherit", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", padding: "10px 18px", background: "linear-gradient(135deg,#f59e0b,#f97316)", color: "#0f0c29" };
+
+  return (
+    <div style={{ width: "100%", padding: "20px 16px", boxSizing: "border-box" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 16 }}>
+
+        {/* Lista */}
+        <div style={{ ...glassCard, marginTop: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f59e0b" }}>📝 Mis Apuntes <span style={{ fontSize: "0.7rem", color: "#64748b" }}>({notas.length})</span></span>
+            <button onClick={nuevaNota} style={{ ...btnAmarillo, padding: "6px 14px", fontSize: "0.78rem" }}>+ Nueva</button>
+          </div>
+          <input value={notaBuscar} onChange={e => setNotaBuscar(e.target.value)} placeholder="Buscar en apuntes..."
+            style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 8, padding: "8px 12px", color: "#e2e8f0", fontSize: "0.82rem", fontFamily: "inherit", outline: "none", boxSizing: "border-box", marginBottom: 12 }} />
+          {notas.length === 0 ? (
+            <div style={{ textAlign: "center", color: "#64748b", padding: "30px 0", fontSize: "0.82rem", lineHeight: 2 }}>
+              <div style={{ fontSize: "2rem", marginBottom: 8, opacity: 0.3 }}>📝</div>
+              Aún no tienes apuntes.<br />Pulsa <strong style={{ color: "#f59e0b" }}>+ Nueva</strong> para empezar.
+            </div>
+          ) : notasFiltradas.length === 0 ? (
+            <div style={{ textAlign: "center", color: "#64748b", padding: "20px 0", fontSize: "0.82rem" }}>Sin resultados para "{notaBuscar}"</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 460, overflowY: "auto", paddingRight: 4 }}>
+              {notasFiltradas.map(nota => {
+                const activa = notaActual?.id === nota.id;
+                const fecha = new Date(nota.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+                return (
+                  <div key={nota.id} onClick={() => editarNota(nota)}
+                    style={{ background: activa ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${activa ? "rgba(245,158,11,0.5)" : "rgba(255,255,255,0.08)"}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", transition: "all 0.15s" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: activa ? "#f59e0b" : "#e2e8f0", fontSize: "0.85rem", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nota.titulo}</div>
+                        <div style={{ fontSize: "0.72rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nota.contenido.slice(0, 60)}{nota.contenido.length > 60 ? "..." : ""}</div>
+                        <div style={{ fontSize: "0.65rem", color: "#475569", marginTop: 4 }}>{fecha}</div>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); borrarNota(nota.id); }}
+                        style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px", flexShrink: 0 }}>🗑</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Editor */}
+        <div style={{ ...glassCard, marginTop: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f59e0b" }}>{notaActual ? "✏️ Editando" : "✨ Nuevo apunte"}</span>
+            {notaActual && <button onClick={nuevaNota} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#64748b", fontSize: "0.72rem", cursor: "pointer", padding: "4px 10px", fontFamily: "inherit" }}>+ Nuevo</button>}
+          </div>
+          <div>
+            <span style={{ fontSize: "0.65rem", letterSpacing: "0.12em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 6, display: "block" }}>título</span>
+            <input value={notaInput.titulo} onChange={e => setNotaInput(p => ({ ...p, titulo: e.target.value }))} placeholder="Ej: Regla de la cadena..."
+              style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1.5px solid rgba(245,158,11,0.25)", borderRadius: 10, padding: "10px 14px", color: "#e2e8f0", fontSize: "0.9rem", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+              onFocus={e => { e.target.style.borderColor = "rgba(245,158,11,0.7)"; e.target.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.1)"; }}
+              onBlur={e => { e.target.style.borderColor = "rgba(245,158,11,0.25)"; e.target.style.boxShadow = "none"; }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: "0.65rem", letterSpacing: "0.12em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 6, display: "block" }}>contenido</span>
+            <textarea value={notaInput.contenido} onChange={e => setNotaInput(p => ({ ...p, contenido: e.target.value }))}
+              placeholder={"Escribe tus apuntes aquí...\n\nEj:\n• d/dx[xⁿ] = n·x^(n-1)\n• sin(x) → cos(x)"}
+              rows={12}
+              style={{ width: "100%", background: "rgba(0,0,0,0.4)", border: "1.5px solid rgba(245,158,11,0.25)", borderRadius: 10, padding: "12px 14px", color: "#e2e8f0", fontSize: "0.85rem", fontFamily: "inherit", outline: "none", boxSizing: "border-box", resize: "vertical", lineHeight: 1.7 }}
+              onFocus={e => { e.target.style.borderColor = "rgba(245,158,11,0.7)"; e.target.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.1)"; }}
+              onBlur={e => { e.target.style.borderColor = "rgba(245,158,11,0.25)"; e.target.style.boxShadow = "none"; }} />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={guardarNota} style={{ ...btnAmarillo, flex: 1, padding: "11px" }}>
+              {notaActual ? "💾 Guardar cambios" : "💾 Guardar apunte"}
+            </button>
+            {notaActual && (
+              <button onClick={() => { setNotaActual(null); setNotaInput({ titulo: "", contenido: "" }); }}
+                style={{ padding: "11px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#f87171", fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+            )}
+          </div>
+          <div style={{ fontSize: "0.72rem", color: "#475569", lineHeight: 1.6, padding: "10px 12px", background: "rgba(0,0,0,0.2)", borderRadius: 8 }}>
+            💡 Tus apuntes se guardan en el dispositivo y estarán aquí cada vez que abras la app.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab,          setTab]        = useState("calc");
   const [input,        setInput]      = useState("");
@@ -1405,6 +1529,14 @@ export default function App() {
   const [limResult,  setLimResult]  = useState(null);
   const [limError,   setLimError]   = useState("");
   const [limPoints,  setLimPoints]  = useState(null);
+
+  // Notas
+  const [notas, setNotas] = useState(() => {
+    try { const s = localStorage.getItem("neoderiva_notas"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [notaActual, setNotaActual] = useState(null); // {id, titulo, contenido, fecha}
+  const [notaInput,  setNotaInput]  = useState({ titulo:"", contenido:"" });
+  const [notaBuscar, setNotaBuscar] = useState("");
 
   // L'Hôpital — análisis y pasos pedagógicos
   // lhAnalisis: objeto devuelto por aplicarLHopital(), null si aún no se calculó
@@ -1653,28 +1785,28 @@ export default function App() {
     integCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:18, boxShadow:`0 0 12px ${c}10` }),
   };
 
-  const tabList = [["calc","∂ Derivadas"],["lim","lim Límites"],["int","∫ Integrales"],["quiz","🎮 Quiz"],["glos","📖 Glosario"]];
+  const tabList = [["calc","∂ Derivadas"],["lim","lim Límites"],["int","∫ Integrales"],["quiz","🎮 Quiz"],["glos","📖 Glosario"],["notas","📝 Notas"]];
 
   return (
-    <div style={S.root}>
+    <><div style={S.root}>
       {/* Scanlines & glow bg */}
-      <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, background:"repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(167,139,250,0.015) 2px,rgba(167,139,250,0.015) 4px)" }} />
-      <div style={{ position:"fixed", top:"20%", left:"50%", transform:"translateX(-50%)", width:"60vw", height:"40vh", background:"radial-gradient(ellipse,#a78bfa08 0%,transparent 70%)", pointerEvents:"none", zIndex:0 }} />
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(167,139,250,0.015) 2px,rgba(167,139,250,0.015) 4px)" }} />
+      <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: "60vw", height: "40vh", background: "radial-gradient(ellipse,#a78bfa08 0%,transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
 
-      <div style={{ position:"relative", zIndex:1 }}>
+      <div style={{ position: "relative", zIndex: 1 }}>
         <div style={S.header}>
           <h1 style={S.title}>NEO∂ERIVA</h1>
           <p style={S.subtitle}>Cálculo Diferencial · Sistema de Estudio</p>
           <span style={S.badge}>DERIVADAS · LÍMITES · INTEGRALES · QUIZ</span>
           <div style={S.tabs}>
-            {tabList.map(([id,name]) => (
-              <button key={id} style={S.tab(tab===id)} onClick={() => setTab(id)}>{name}</button>
+            {tabList.map(([id, name]) => (
+              <button key={id} style={S.tab(tab === id)} onClick={() => setTab(id)}>{name}</button>
             ))}
           </div>
         </div>
 
         {/* ═══════════════ TAB: DERIVADAS ═══════════════ */}
-        {tab==="calc" && (
+        {tab === "calc" && (
           <>
             <div style={S.grid}>
               {/* IZQUIERDO */}
@@ -1685,37 +1817,36 @@ export default function App() {
                   style={S.inputBox}
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key==="Enter" && handleDerive()}
+                  onKeyDown={e => e.key === "Enter" && handleDerive()}
                   placeholder="Ej: x^3 + sin(x)"
-                  spellCheck={false}
-                />
+                  spellCheck={false} />
                 {error && <div style={S.error}>⚠ {error}</div>}
                 <button style={S.btn} onClick={handleDerive}>CALCULAR DERIVADA →</button>
 
                 {/* Ejemplos predefinidos */}
-                <div style={{ marginTop:16 }}>
+                <div style={{ marginTop: 16 }}>
                   <span style={S.label}>ejemplos rápidos</span>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {[
-                      { label:"x³",           fn:"x^3" },
-                      { label:"sin(x)",        fn:"sin(x)" },
-                      { label:"eˣ",            fn:"e^x" },
-                      { label:"ln(x)",         fn:"ln(x)" },
-                      { label:"x²+3x",         fn:"x^2+3*x" },
-                      { label:"x·sin(x)",      fn:"x*sin(x)" },
-                      { label:"sin(x²)",       fn:"sin(x^2)" },
-                      { label:"x⁴−4x²",        fn:"x^4-4*x^2" },
+                      { label: "x³", fn: "x^3" },
+                      { label: "sin(x)", fn: "sin(x)" },
+                      { label: "eˣ", fn: "e^x" },
+                      { label: "ln(x)", fn: "ln(x)" },
+                      { label: "x²+3x", fn: "x^2+3*x" },
+                      { label: "x·sin(x)", fn: "x*sin(x)" },
+                      { label: "sin(x²)", fn: "sin(x^2)" },
+                      { label: "x⁴−4x²", fn: "x^4-4*x^2" },
                     ].map(ej => (
-                      <button key={ej.fn} onClick={() => { setInput(ej.fn); setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setCriticos(null); }}
-                        style={{ padding:"5px 12px", borderRadius:8, border:"1px solid rgba(167,139,250,0.25)", background:"rgba(167,139,250,0.07)", color:"#c4b5fd", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}
-                        onMouseEnter={e => { e.target.style.background="rgba(167,139,250,0.18)"; e.target.style.borderColor="rgba(167,139,250,0.6)"; }}
-                        onMouseLeave={e => { e.target.style.background="rgba(167,139,250,0.07)"; e.target.style.borderColor="rgba(167,139,250,0.25)"; }}>
+                      <button key={ej.fn} onClick={() => { setInput(ej.fn); setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setCriticos(null); } }
+                        style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(167,139,250,0.07)", color: "#c4b5fd", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}
+                        onMouseEnter={e => { e.target.style.background = "rgba(167,139,250,0.18)"; e.target.style.borderColor = "rgba(167,139,250,0.6)"; } }
+                        onMouseLeave={e => { e.target.style.background = "rgba(167,139,250,0.07)"; e.target.style.borderColor = "rgba(167,139,250,0.25)"; } }>
                         {ej.label}
                       </button>
                     ))}
                   </div>
                 </div>
-                <div style={{ marginTop:18 }}>
+                <div style={{ marginTop: 18 }}>
                   <span style={S.label}>teclado rápido</span>
                   <div style={S.kbGrid5}>
                     {NUMS.map(n => <button key={n} style={S.kbBtn("num")} onClick={() => insertAtCursor(n)}>{n}</button>)}
@@ -1723,8 +1854,8 @@ export default function App() {
                   <div style={S.kbGrid4}>
                     {KEYBOARD.map(btn => <button key={btn.insert} style={S.kbBtn(btn.group)} onClick={() => insertAtCursor(btn.insert)}>{btn.label}</button>)}
                   </div>
-                  <button style={{ ...S.kbBtn("del"), width:"100%", marginTop:5, padding:"8px" }}
-                    onClick={() => { setInput(""); setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setPasos([]); }}>
+                  <button style={{ ...S.kbBtn("del"), width: "100%", marginTop: 5, padding: "8px" }}
+                    onClick={() => { setInput(""); setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setPasos([]); } }>
                     Limpiar todo
                   </button>
                 </div>
@@ -1735,34 +1866,34 @@ export default function App() {
                 <span style={S.label}>análisis pedagógico</span>
                 {!result && !ruleInfo && (
                   <div style={S.empty}>
-                    <div style={{ fontSize:"2.5rem", marginBottom:10, opacity:0.3 }}>∂</div>
-                    <p>Ingresa una función y pulsa<br/><strong style={{color:"#a78bfa"}}>CALCULAR DERIVADA</strong></p>
-                    <p style={{fontSize:"0.75rem", color:"#64748b", marginTop:12}}>Prueba: x^3 + sin(x)</p>
+                    <div style={{ fontSize: "2.5rem", marginBottom: 10, opacity: 0.3 }}>∂</div>
+                    <p>Ingresa una función y pulsa<br /><strong style={{ color: "#a78bfa" }}>CALCULAR DERIVADA</strong></p>
+                    <p style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 12 }}>Prueba: x^3 + sin(x)</p>
                   </div>
                 )}
                 {ruleInfo && (
-                  <div key={`rule-${animKey}`} style={{ ...S.ruleCard(ruleInfo.color), animation:"cyberSlide 0.4s ease" }}>
-                    <div style={{ fontWeight:700, color:ruleInfo.color, marginBottom:4, fontSize:"0.88rem" }}>📐 {ruleInfo.name}</div>
-                    <div style={{ margin:"10px 0" }}><KaTeX formula={ruleInfo.latex} display={true} /></div>
-                    <div style={{ fontSize:"0.78rem", color:"#64748b", lineHeight:1.6 }}>{ruleInfo.explanation}</div>
+                  <div key={`rule-${animKey}`} style={{ ...S.ruleCard(ruleInfo.color), animation: "cyberSlide 0.4s ease" }}>
+                    <div style={{ fontWeight: 700, color: ruleInfo.color, marginBottom: 4, fontSize: "0.88rem" }}>📐 {ruleInfo.name}</div>
+                    <div style={{ margin: "10px 0" }}><KaTeX formula={ruleInfo.latex} display={true} /></div>
+                    <div style={{ fontSize: "0.78rem", color: "#64748b", lineHeight: 1.6 }}>{ruleInfo.explanation}</div>
                   </div>
                 )}
                 {result?.success && (
-                  <div key={`res-${animKey}`} style={{ animation:"cyberSlide 0.5s ease 0.1s both" }}>
-                    <div style={{ marginBottom:14 }}>
+                  <div key={`res-${animKey}`} style={{ animation: "cyberSlide 0.5s ease 0.1s both" }}>
+                    <div style={{ marginBottom: 14 }}>
                       <span style={S.label}>función original</span>
                       <div style={S.resultBox(false)}>
                         <KaTeX formula={`f(x) = ${result.inputLatex}`} display={true} />
                       </div>
                     </div>
-                    <div style={{ textAlign:"center", fontSize:"1.3rem", color:"#a78bfa", margin:"6px 0" }}>↓</div>
+                    <div style={{ textAlign: "center", fontSize: "1.3rem", color: "#a78bfa", margin: "6px 0" }}>↓</div>
                     <div>
                       <span style={S.label}>derivada f′(x)</span>
                       <div style={S.resultBox(true)}>
                         <KaTeX formula={`f'(x) = ${result.outputLatex}`} display={true} />
                       </div>
                     </div>
-                    <div style={{ marginTop:8, fontSize:"0.72rem", color:"#64748b", textAlign:"center" }}>
+                    <div style={{ marginTop: 8, fontSize: "0.72rem", color: "#64748b", textAlign: "center" }}>
                       Texto: f'(x) = {result.outputText}
                     </div>
                     {/* Copiar al portapapeles */}
@@ -1770,43 +1901,43 @@ export default function App() {
                       onClick={() => {
                         navigator.clipboard.writeText(`f'(x) = ${result.outputText}`);
                         const btn = document.getElementById("copy-btn-deriv");
-                        if (btn) { btn.textContent = "✓ Copiado!"; btn.style.color="#10b981"; btn.style.borderColor="#10b98166"; setTimeout(()=>{ btn.textContent="📋 Copiar resultado"; btn.style.color="#94a3b8"; btn.style.borderColor="rgba(255,255,255,0.12)"; },2000); }
-                      }}
+                        if (btn) { btn.textContent = "✓ Copiado!"; btn.style.color = "#10b981"; btn.style.borderColor = "#10b98166"; setTimeout(() => { btn.textContent = "📋 Copiar resultado"; btn.style.color = "#94a3b8"; btn.style.borderColor = "rgba(255,255,255,0.12)"; }, 2000); }
+                      } }
                       id="copy-btn-deriv"
-                      style={{ marginTop:10, width:"100%", padding:"7px", borderRadius:8, border:"1px solid rgba(255,255,255,0.12)", background:"rgba(255,255,255,0.04)", color:"#94a3b8", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}>
+                      style={{ marginTop: 10, width: "100%", padding: "7px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "#94a3b8", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>
                       📋 Copiar resultado
                     </button>
 
                     {/* Derivada de orden n */}
-                    <div style={{ marginTop:16 }}>
+                    <div style={{ marginTop: 16 }}>
                       <span style={S.label}>derivada de orden n</span>
-                      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
-                        {[2,3,4,5].map(n => (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                        {[2, 3, 4, 5].map(n => (
                           <button key={n} onClick={() => {
                             try {
                               let expr = preprocess(input);
-                              for (let i = 0; i < n; i++) expr = math.simplify(math.derivative(expr,"x")).toString();
+                              for (let i = 0; i < n; i++) expr = math.simplify(math.derivative(expr, "x")).toString();
                               const latex = math.parse(expr).toTex();
                               setNthOrder(n); setNthResult({ text: expr, latex });
-                            } catch(e) { setNthResult({ error: e.message }); setNthOrder(n); }
-                          }}
-                          style={{ padding:"5px 14px", borderRadius:8, border:`1px solid ${nthOrder===n?"#38bdf888":"rgba(56,189,248,0.2)"}`, background:nthOrder===n?"rgba(56,189,248,0.15)":"rgba(56,189,248,0.05)", color:nthOrder===n?"#38bdf8":"#64748b", fontSize:"0.8rem", cursor:"pointer", fontFamily:"inherit" }}>
+                            } catch (e) { setNthResult({ error: e.message }); setNthOrder(n); }
+                          } }
+                            style={{ padding: "5px 14px", borderRadius: 8, border: `1px solid ${nthOrder === n ? "#38bdf888" : "rgba(56,189,248,0.2)"}`, background: nthOrder === n ? "rgba(56,189,248,0.15)" : "rgba(56,189,248,0.05)", color: nthOrder === n ? "#38bdf8" : "#64748b", fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit" }}>
                             f<sup>({n})</sup>
                           </button>
                         ))}
-                        {nthOrder && <button onClick={()=>{setNthOrder(null);setNthResult(null);}} style={{ padding:"5px 10px", borderRadius:8, border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.07)", color:"#f87171", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}>✕</button>}
+                        {nthOrder && <button onClick={() => { setNthOrder(null); setNthResult(null); } } style={{ padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.07)", color: "#f87171", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
                       </div>
                       {nthResult && !nthResult.error && (
-                        <div style={{ background:"rgba(56,189,248,0.07)", border:"1px solid rgba(56,189,248,0.25)", borderRadius:10, padding:"12px 14px", animation:"cyberSlide 0.3s ease" }}>
-                          <div style={{ fontSize:"0.65rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>f<sup>({nthOrder})</sup>(x)</div>
+                        <div style={{ background: "rgba(56,189,248,0.07)", border: "1px solid rgba(56,189,248,0.25)", borderRadius: 10, padding: "12px 14px", animation: "cyberSlide 0.3s ease" }}>
+                          <div style={{ fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>f<sup>({nthOrder})</sup>(x)</div>
                           <KaTeX formula={nthResult.latex} display={true} />
-                          <div style={{ marginTop:8, fontSize:"0.7rem", color:"#64748b", fontFamily:"monospace" }}>{nthResult.text}</div>
+                          <div style={{ marginTop: 8, fontSize: "0.7rem", color: "#64748b", fontFamily: "monospace" }}>{nthResult.text}</div>
                           <button onClick={() => {
                             navigator.clipboard.writeText(`f^(${nthOrder})(x) = ${nthResult.text}`);
                             const btn = document.getElementById("copy-btn-nth");
-                            if (btn) { btn.textContent="✓ Copiado!"; btn.style.color="#10b981"; setTimeout(()=>{ btn.textContent="📋 Copiar"; btn.style.color="#64748b"; },2000); }
-                          }} id="copy-btn-nth"
-                          style={{ marginTop:8, padding:"4px 12px", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"transparent", color:"#64748b", fontSize:"0.72rem", cursor:"pointer", fontFamily:"inherit" }}>
+                            if (btn) { btn.textContent = "✓ Copiado!"; btn.style.color = "#10b981"; setTimeout(() => { btn.textContent = "📋 Copiar"; btn.style.color = "#64748b"; }, 2000); }
+                          } } id="copy-btn-nth"
+                            style={{ marginTop: 8, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#64748b", fontSize: "0.72rem", cursor: "pointer", fontFamily: "inherit" }}>
                             📋 Copiar
                           </button>
                         </div>
@@ -1822,30 +1953,30 @@ export default function App() {
 
             {graphData && (
               <div style={S.fullWrap}>
-                <div style={{ ...S.graphCard, animation:"cyberSlide 0.6s ease" }}>
+                <div style={{ ...S.graphCard, animation: "cyberSlide 0.6s ease" }}>
                   <span style={S.label}>visualización gráfica</span>
-                  <p style={{ fontSize:"0.75rem", color:"#94a3b8", margin:"4px 0 8px" }}>
-                    <strong style={{color:"#a78bfa"}}>— f(x)</strong> &nbsp;·&nbsp; <strong style={{color:"#38bdf8"}}>- - f'(x)</strong>
+                  <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "4px 0 8px" }}>
+                    <strong style={{ color: "#a78bfa" }}>— f(x)</strong> &nbsp;·&nbsp; <strong style={{ color: "#38bdf8" }}>- - f'(x)</strong>
                     {criticos?.success && criticos.puntos.length > 0 && (
-                      <> &nbsp;·&nbsp; <strong style={{color:"#10b981"}}>▲ máx</strong> <strong style={{color:"#ef4444"}}>▼ mín</strong> <strong style={{color:"#38bdf8"}}>↔ infl</strong></>
+                      <> &nbsp; ·&nbsp; <strong style={{ color: "#10b981" }}>▲ máx</strong> <strong style={{ color: "#ef4444" }}>▼ mín</strong> <strong style={{ color: "#38bdf8" }}>↔ infl</strong></>
                     )}
                   </p>
                   <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={graphData} margin={{top:10,right:20,left:0,bottom:5}}>
+                    <LineChart data={graphData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} tickCount={13} />
-                      <YAxis stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} domain={["auto","auto"]} width={38} />
-                      <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(167,139,250,0.3)",borderRadius:8,fontSize:12}} labelFormatter={v=>`x = ${v}`} formatter={(val,name)=>[val!==null?val.toFixed(4):"—",name==="fx"?"f(x)":"f'(x)"]} />
-                      <Legend formatter={v=>v==="fx"?"f(x)":"f'(x)"} wrapperStyle={{fontSize:12,color:"#64748b"}} />
-                      <Line type="monotone" dataKey="fx"  stroke="#a78bfa" strokeWidth={2.5} dot={false} connectNulls={false} />
+                      <XAxis dataKey="x" stroke="#2d3748" tick={{ fill: "#64748b", fontSize: 10 }} tickCount={13} />
+                      <YAxis stroke="#2d3748" tick={{ fill: "#64748b", fontSize: 10 }} domain={["auto", "auto"]} width={38} />
+                      <Tooltip contentStyle={{ background: "rgba(6,6,18,0.97)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 8, fontSize: 12 }} labelFormatter={v => `x = ${v}`} formatter={(val, name) => [val !== null ? val.toFixed(4) : "—", name === "fx" ? "f(x)" : "f'(x)"]} />
+                      <Legend formatter={v => v === "fx" ? "f(x)" : "f'(x)"} wrapperStyle={{ fontSize: 12, color: "#64748b" }} />
+                      <Line type="monotone" dataKey="fx" stroke="#a78bfa" strokeWidth={2.5} dot={false} connectNulls={false} />
                       <Line type="monotone" dataKey="dfx" stroke="#38bdf8" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={false} />
                       {/* Puntos críticos marcados sobre la curva */}
                       {criticos?.success && criticos.puntos.map((p, i) => {
-                        const col = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":"#38bdf8";
-                        const label = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":"↔";
+                        const col = p.tipo === "máximo local" ? "#10b981" : p.tipo === "mínimo local" ? "#ef4444" : "#38bdf8";
+                        const label = p.tipo === "máximo local" ? "▲" : p.tipo === "mínimo local" ? "▼" : "↔";
                         return (
                           <ReferenceDot key={i} x={p.x} y={p.y} r={6} fill={col} stroke="#0d0a2a" strokeWidth={2}
-                            label={{ value:label, position:"top", fill:col, fontSize:12 }} />
+                            label={{ value: label, position: "top", fill: col, fontSize: 12 }} />
                         );
                       })}
                     </LineChart>
@@ -1853,22 +1984,22 @@ export default function App() {
 
                   {/* Puntos críticos sobre la gráfica */}
                   {criticos?.success && criticos.puntos.length > 0 && (
-                    <div style={{ marginTop:12, display:"flex", flexWrap:"wrap", gap:8 }}>
+                    <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {criticos.puntos.map((p, i) => {
-                        const col  = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":"#38bdf8";
-                        const icon = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":"↔";
+                        const col = p.tipo === "máximo local" ? "#10b981" : p.tipo === "mínimo local" ? "#ef4444" : "#38bdf8";
+                        const icon = p.tipo === "máximo local" ? "▲" : p.tipo === "mínimo local" ? "▼" : "↔";
                         return (
-                          <div key={i} style={{ display:"flex", alignItems:"center", gap:6, background:`${col}12`, border:`1px solid ${col}44`, borderRadius:8, padding:"5px 10px" }}>
-                            <span style={{ color:col, fontSize:"0.8rem" }}>{icon}</span>
-                            <span style={{ fontSize:"0.72rem", color:"#94a3b8", fontFamily:"monospace" }}>({p.x}, {p.y})</span>
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, background: `${col}12`, border: `1px solid ${col}44`, borderRadius: 8, padding: "5px 10px" }}>
+                            <span style={{ color: col, fontSize: "0.8rem" }}>{icon}</span>
+                            <span style={{ fontSize: "0.72rem", color: "#94a3b8", fontFamily: "monospace" }}>({p.x}, {p.y})</span>
                           </div>
                         );
                       })}
                     </div>
                   )}
                   {(!criticos || !criticos.success) && result?.success && (
-                    <p style={{ fontSize:"0.72rem", color:"#475569", marginTop:10 }}>
-                      💡 Pulsa <strong style={{color:"#f59e0b"}}>Analizar f(x)</strong> en la sección de Puntos Críticos para ver los máximos y mínimos marcados aquí.
+                    <p style={{ fontSize: "0.72rem", color: "#475569", marginTop: 10 }}>
+                      💡 Pulsa <strong style={{ color: "#f59e0b" }}>Analizar f(x)</strong> en la sección de Puntos Críticos para ver los máximos y mínimos marcados aquí.
                     </p>
                   )}
                 </div>
@@ -1876,17 +2007,17 @@ export default function App() {
             )}
 
             <div style={S.fullWrap}>
-              <CalculationHistory historial={historial} onSeleccionar={handleReutilizar} onLimpiar={() => { setHistorial([]); setMostrarPasos(false); setPasos([]); }} />
+              <CalculationHistory historial={historial} onSeleccionar={handleReutilizar} onLimpiar={() => { setHistorial([]); setMostrarPasos(false); setPasos([]); } } />
             </div>
 
             {/* ── PUNTOS CRÍTICOS ── */}
             {result?.success && (
               <div style={S.fullWrap}>
                 <div style={{ ...glassCard }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexWrap:"wrap", gap:8 }}>
-                    <span style={{ fontSize:"0.85rem", fontWeight:700, color:"#f59e0b" }}>📍 Puntos Críticos</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f59e0b" }}>📍 Puntos Críticos</span>
                     <button onClick={handleCriticalPoints}
-                      style={{ ...cyberBtn, padding:"7px 18px", fontSize:"0.8rem", background:"linear-gradient(135deg,#f59e0b,#f97316)" }}>
+                      style={{ ...cyberBtn, padding: "7px 18px", fontSize: "0.8rem", background: "linear-gradient(135deg,#f59e0b,#f97316)" }}>
                       Analizar f(x)
                     </button>
                   </div>
@@ -1895,46 +2026,53 @@ export default function App() {
                   {criticos?.success && (
                     <>
                       {/* Derivadas encontradas */}
-                      <div style={{ fontSize:"0.75rem", color:"#64748b", marginBottom:12, lineHeight:1.8, background:"rgba(0,0,0,0.2)", borderRadius:10, padding:"10px 14px" }}>
-                        <div><strong style={{color:"#f59e0b"}}>f'(x)</strong> = {criticos.deriv}</div>
-                        <div><strong style={{color:"#38bdf8"}}>f''(x)</strong> = {criticos.deriv2}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: 12, lineHeight: 1.8, background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "10px 14px" }}>
+                        <div><strong style={{ color: "#f59e0b" }}>f'(x)</strong> = {criticos.deriv}</div>
+                        <div><strong style={{ color: "#38bdf8" }}>f''(x)</strong> = {criticos.deriv2}</div>
                       </div>
 
                       {/* Resumen de cuántos encontró */}
-                      {criticos.puntos.length > 0 && (() => {
-                        const maximos   = criticos.puntos.filter(p => p.tipo === "máximo local").length;
-                        const minimos   = criticos.puntos.filter(p => p.tipo === "mínimo local").length;
-                        const inflexiones = criticos.puntos.filter(p => p.tipo === "inflexión").length;
-                        return (
-                          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
-                            {maximos > 0    && <span style={{ fontSize:"0.75rem", background:"#10b98120", color:"#10b981", border:"1px solid #10b98144", borderRadius:999, padding:"3px 12px" }}>▲ {maximos} máximo{maximos>1?"s":""}</span>}
-                            {minimos > 0    && <span style={{ fontSize:"0.75rem", background:"#ef444420", color:"#ef4444", border:"1px solid #ef444444", borderRadius:999, padding:"3px 12px" }}>▼ {minimos} mínimo{minimos>1?"s":""}</span>}
-                            {inflexiones > 0 && <span style={{ fontSize:"0.75rem", background:"#38bdf820", color:"#38bdf8", border:"1px solid #38bdf844", borderRadius:999, padding:"3px 12px" }}>↔ {inflexiones} inflexión{inflexiones>1?"es":""}</span>}
-                          </div>
-                        );
-                      })()}
+                      {criticos.puntos.length > 0 && (
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                          {criticos.puntos.filter(p => p.tipo === "máximo local").length > 0 && (
+                            <span style={{ fontSize: "0.75rem", background: "#10b98120", color: "#10b981", border: "1px solid #10b98144", borderRadius: 999, padding: "3px 12px" }}>
+                              ▲ {criticos.puntos.filter(p => p.tipo === "máximo local").length} máximo{criticos.puntos.filter(p => p.tipo === "máximo local").length > 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {criticos.puntos.filter(p => p.tipo === "mínimo local").length > 0 && (
+                            <span style={{ fontSize: "0.75rem", background: "#ef444420", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 999, padding: "3px 12px" }}>
+                              ▼ {criticos.puntos.filter(p => p.tipo === "mínimo local").length} mínimo{criticos.puntos.filter(p => p.tipo === "mínimo local").length > 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {criticos.puntos.filter(p => p.tipo === "inflexión").length > 0 && (
+                            <span style={{ fontSize: "0.75rem", background: "#38bdf820", color: "#38bdf8", border: "1px solid #38bdf844", borderRadius: 999, padding: "3px 12px" }}>
+                              ↔ {criticos.puntos.filter(p => p.tipo === "inflexión").length} inflexión{criticos.puntos.filter(p => p.tipo === "inflexión").length > 1 ? "es" : ""}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {criticos.puntos.length === 0 ? (
-                        <div style={{ textAlign:"center", color:"#94a3b8", padding:"20px 0" }}>No se encontraron puntos críticos en [-10, 10]</div>
+                        <div style={{ textAlign: "center", color: "#94a3b8", padding: "20px 0" }}>No se encontraron puntos críticos en [-10, 10]</div>
                       ) : (
-                        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 10 }}>
                           {criticos.puntos.map((p, i) => {
-                            const col  = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":p.tipo==="inflexión"?"#38bdf8":"#a78bfa";
-                            const icon = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":p.tipo==="inflexión"?"↔":"?";
-                            const explicacion = p.tipo==="máximo local"
+                            const col = p.tipo === "máximo local" ? "#10b981" : p.tipo === "mínimo local" ? "#ef4444" : p.tipo === "inflexión" ? "#38bdf8" : "#a78bfa";
+                            const icon = p.tipo === "máximo local" ? "▲" : p.tipo === "mínimo local" ? "▼" : p.tipo === "inflexión" ? "↔" : "?";
+                            const explicacion = p.tipo === "máximo local"
                               ? `La función sube, llega al tope en este punto y empieza a bajar. f''(x) < 0 confirma que la curva es cóncava hacia abajo (∩).`
-                              : p.tipo==="mínimo local"
-                              ? `La función baja, toca el punto más bajo aquí y vuelve a subir. f''(x) > 0 confirma que la curva es cóncava hacia arriba (∪).`
-                              : `La función cambia de curvatura aquí: pasa de cóncava a convexa (o viceversa). f'(x) puede no ser cero, pero f''(x) ≈ 0.`;
+                              : p.tipo === "mínimo local"
+                                ? `La función baja, toca el punto más bajo aquí y vuelve a subir. f''(x) > 0 confirma que la curva es cóncava hacia arriba (∪).`
+                                : `La función cambia de curvatura aquí: pasa de cóncava a convexa (o viceversa). f'(x) puede no ser cero, pero f''(x) ≈ 0.`;
                             return (
-                              <div key={i} style={{ background:`${col}10`, border:`1px solid ${col}44`, borderRadius:12, padding:"14px 16px" }}>
-                                <div style={{ color:col, fontWeight:700, fontSize:"0.85rem", marginBottom:8 }}>{icon} {p.tipo}</div>
-                                <div style={{ fontSize:"0.82rem", color:"#e2e8f0", fontFamily:"monospace", marginBottom:2 }}>x = {p.x}</div>
-                                <div style={{ fontSize:"0.82rem", color:"#e2e8f0", fontFamily:"monospace", marginBottom:8 }}>f(x) = {p.y}</div>
+                              <div key={i} style={{ background: `${col}10`, border: `1px solid ${col}44`, borderRadius: 12, padding: "14px 16px" }}>
+                                <div style={{ color: col, fontWeight: 700, fontSize: "0.85rem", marginBottom: 8 }}>{icon} {p.tipo}</div>
+                                <div style={{ fontSize: "0.82rem", color: "#e2e8f0", fontFamily: "monospace", marginBottom: 2 }}>x = {p.x}</div>
+                                <div style={{ fontSize: "0.82rem", color: "#e2e8f0", fontFamily: "monospace", marginBottom: 8 }}>f(x) = {p.y}</div>
                                 {p.tipo !== "inflexión" && (
-                                  <div style={{ fontSize:"0.72rem", color:"#64748b", marginBottom:8 }}>f''(x) = {p.d2}</div>
+                                  <div style={{ fontSize: "0.72rem", color: "#64748b", marginBottom: 8 }}>f''(x) = {p.d2}</div>
                                 )}
-                                <div style={{ fontSize:"0.72rem", color:"#94a3b8", lineHeight:1.6, borderTop:`1px solid ${col}22`, paddingTop:8 }}>
+                                <div style={{ fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.6, borderTop: `1px solid ${col}22`, paddingTop: 8 }}>
                                   {explicacion}
                                 </div>
                               </div>
@@ -1944,17 +2082,17 @@ export default function App() {
                       )}
 
                       {/* Leyenda del criterio */}
-                      <div style={{ marginTop:14, padding:"12px 14px", background:"rgba(0,0,0,0.25)", borderRadius:10, fontSize:"0.74rem", color:"#64748b", lineHeight:1.8 }}>
-                        <strong style={{color:"#94a3b8", display:"block", marginBottom:4}}>📐 Criterio de la 2ª Derivada</strong>
-                        <span style={{color:"#10b981"}}>f''(x) &lt; 0</span> → la curva es cóncava ∩ → <strong style={{color:"#10b981"}}>máximo local</strong><br/>
-                        <span style={{color:"#ef4444"}}>f''(x) &gt; 0</span> → la curva es cóncava ∪ → <strong style={{color:"#ef4444"}}>mínimo local</strong><br/>
-                        <span style={{color:"#38bdf8"}}>f''(x) ≈ 0</span> → posible cambio de curvatura → <strong style={{color:"#38bdf8"}}>inflexión</strong>
+                      <div style={{ marginTop: 14, padding: "12px 14px", background: "rgba(0,0,0,0.25)", borderRadius: 10, fontSize: "0.74rem", color: "#64748b", lineHeight: 1.8 }}>
+                        <strong style={{ color: "#94a3b8", display: "block", marginBottom: 4 }}>📐 Criterio de la 2ª Derivada</strong>
+                        <span style={{ color: "#10b981" }}>f''(x) &lt; 0</span> → la curva es cóncava ∩ → <strong style={{ color: "#10b981" }}>máximo local</strong><br />
+                        <span style={{ color: "#ef4444" }}>f''(x) &gt; 0</span> → la curva es cóncava ∪ → <strong style={{ color: "#ef4444" }}>mínimo local</strong><br />
+                        <span style={{ color: "#38bdf8" }}>f''(x) ≈ 0</span> → posible cambio de curvatura → <strong style={{ color: "#38bdf8" }}>inflexión</strong>
                       </div>
                     </>
                   )}
                   {!criticos && (
-                    <div style={{ textAlign:"center", color:"#64748b", padding:"20px 0", fontSize:"0.82rem" }}>
-                      Pulsa <strong style={{color:"#f59e0b"}}>Analizar f(x)</strong> para encontrar máximos, mínimos e inflexiones
+                    <div style={{ textAlign: "center", color: "#64748b", padding: "20px 0", fontSize: "0.82rem" }}>
+                      Pulsa <strong style={{ color: "#f59e0b" }}>Analizar f(x)</strong> para encontrar máximos, mínimos e inflexiones
                     </div>
                   )}
                 </div>
@@ -1964,7 +2102,7 @@ export default function App() {
         )}
 
         {/* ═══════════════ TAB: LÍMITES ═══════════════ */}
-        {tab==="lim" && (
+        {tab === "lim" && (
           <>
             <div style={S.grid}>
               {/* Input */}
@@ -1975,34 +2113,32 @@ export default function App() {
                   style={S.inputBox}
                   value={limExpr}
                   onChange={e => setLimExpr(e.target.value)}
-                  onKeyDown={e => e.key==="Enter" && handleLimit()}
+                  onKeyDown={e => e.key === "Enter" && handleLimit()}
                   placeholder="Ej: sin(x)/x  o  (x^2-1)/(x-1)"
-                  spellCheck={false}
-                />
-                <span style={{ ...S.label, marginTop:14 }}>punto x →</span>
+                  spellCheck={false} />
+                <span style={{ ...S.label, marginTop: 14 }}>punto x →</span>
                 <input
                   style={S.inputBox}
                   value={limPoint}
                   onChange={e => setLimPoint(e.target.value)}
                   placeholder="Ej: 0, 1, -2, 3.14"
-                  spellCheck={false}
-                />
+                  spellCheck={false} />
                 {limError && <div style={S.error}>⚠ {limError}</div>}
 
                 {/* Botón principal: límite numérico */}
                 <button style={S.btn} onClick={handleLimit}>CALCULAR LÍMITE →</button>
 
                 {/*
-                  Botón de L'Hôpital — aparece solo después de calcular el límite.
-                  Si el usuario no ha calculado nada aún, no tiene sentido mostrarlo.
-                  Lo habilitamos cuando hay un resultado de límite cargado.
-                */}
+              Botón de L'Hôpital — aparece solo después de calcular el límite.
+              Si el usuario no ha calculado nada aún, no tiene sentido mostrarlo.
+              Lo habilitamos cuando hay un resultado de límite cargado.
+            */}
                 {limResult && (
                   <button
                     onClick={handleLHopital}
                     style={{
                       ...S.btn,
-                      marginTop:8,
+                      marginTop: 8,
                       background: lhVisible
                         ? "rgba(167,139,250,0.15)"
                         : "linear-gradient(135deg,#7c3aed,#a78bfa)",
@@ -2015,7 +2151,7 @@ export default function App() {
                 )}
 
                 {/* Teclado virtual — mismo sistema que derivadas */}
-                <div style={{ marginTop:16 }}>
+                <div style={{ marginTop: 16 }}>
                   <span style={S.label}>teclado rápido</span>
                   <div style={S.kbGrid5}>
                     {NUMS.map(n => <button key={n} style={S.kbBtn("num")} onClick={() => insertLim(n)}>{n}</button>)}
@@ -2023,27 +2159,27 @@ export default function App() {
                   <div style={S.kbGrid4}>
                     {KEYBOARD.map(btn => <button key={btn.insert} style={S.kbBtn(btn.group)} onClick={() => insertLim(btn.insert)}>{btn.label}</button>)}
                   </div>
-                  <button style={{ ...S.kbBtn("del"), width:"100%", marginTop:5, padding:"8px" }}
-                    onClick={() => { setLimExpr(""); setLimResult(null); setLimError(""); setLimPoints(null); setLhAnalisis(null); setLhVisible(false); }}>
+                  <button style={{ ...S.kbBtn("del"), width: "100%", marginTop: 5, padding: "8px" }}
+                    onClick={() => { setLimExpr(""); setLimResult(null); setLimError(""); setLimPoints(null); setLhAnalisis(null); setLhVisible(false); } }>
                     Limpiar todo
                   </button>
                 </div>
 
-                <div style={{ marginTop:16, padding:"14px", background:"rgba(0,0,0,0.25)", borderRadius:12, border:"1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ fontSize:"0.65rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Ejemplos clásicos</div>
+                <div style={{ marginTop: 16, padding: "14px", background: "rgba(0,0,0,0.25)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Ejemplos clásicos</div>
                   {[
-                    { f:"sin(x)/x",        p:"0", label:"0/0 clásico" },
-                    { f:"(x^2-1)/(x-1)",  p:"1", label:"Removible 0/0" },
-                    { f:"(e^x-1)/x",      p:"0", label:"Derivada de eˣ" },
-                    { f:"(1-cos(x))/x^2", p:"0", label:"L'Hôpital ×2" },
-                    { f:"ln(x)/(x-1)",    p:"1", label:"ln → 0/0" },
-                    { f:"1/x",            p:"0", label:"No existe" },
+                    { f: "sin(x)/x", p: "0", label: "0/0 clásico" },
+                    { f: "(x^2-1)/(x-1)", p: "1", label: "Removible 0/0" },
+                    { f: "(e^x-1)/x", p: "0", label: "Derivada de eˣ" },
+                    { f: "(1-cos(x))/x^2", p: "0", label: "L'Hôpital ×2" },
+                    { f: "ln(x)/(x-1)", p: "1", label: "ln → 0/0" },
+                    { f: "1/x", p: "0", label: "No existe" },
                   ].map(ex => (
-                    <button key={ex.f} onClick={() => { setLimExpr(ex.f); setLimPoint(ex.p); }}
-                      style={{ display:"block", width:"100%", marginBottom:5, padding:"7px 12px", borderRadius:8, border:"1px solid rgba(255,255,255,0.08)", background:"rgba(255,255,255,0.03)", color:"#64748b", fontSize:"0.75rem", cursor:"pointer", textAlign:"left" }}
-                      onMouseOver={e=>{e.currentTarget.style.borderColor="#38bdf855";e.currentTarget.style.color="#38bdf8";}}
-                      onMouseOut={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.08)";e.currentTarget.style.color="#64748b";}}>
-                      <span style={{color:"#38bdf8"}}>f(x) = </span>{ex.f} &nbsp;<span style={{color:"#94a3b8"}}>x → {ex.p}</span>
+                    <button key={ex.f} onClick={() => { setLimExpr(ex.f); setLimPoint(ex.p); } }
+                      style={{ display: "block", width: "100%", marginBottom: 5, padding: "7px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "#64748b", fontSize: "0.75rem", cursor: "pointer", textAlign: "left" }}
+                      onMouseOver={e => { e.currentTarget.style.borderColor = "#38bdf855"; e.currentTarget.style.color = "#38bdf8"; } }
+                      onMouseOut={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#64748b"; } }>
+                      <span style={{ color: "#38bdf8" }}>f(x) = </span>{ex.f} &nbsp;<span style={{ color: "#94a3b8" }}>x → {ex.p}</span>
                     </button>
                   ))}
                 </div>
@@ -2054,45 +2190,45 @@ export default function App() {
                 <span style={S.label}>resultado del límite</span>
                 {!limResult && (
                   <div style={S.empty}>
-                    <div style={{ fontSize:"2.5rem", marginBottom:10, opacity:0.3 }}>lim</div>
-                    <p>Ingresa una función y el punto<br/>para evaluar el límite.</p>
+                    <div style={{ fontSize: "2.5rem", marginBottom: 10, opacity: 0.3 }}>lim</div>
+                    <p>Ingresa una función y el punto<br />para evaluar el límite.</p>
                   </div>
                 )}
                 {limResult && (
-                  <div style={{ animation:"cyberSlide 0.4s ease" }}>
-                    <div style={{ textAlign:"center", marginBottom:16 }}>
+                  <div style={{ animation: "cyberSlide 0.4s ease" }}>
+                    <div style={{ textAlign: "center", marginBottom: 16 }}>
                       <KaTeX formula={`\\lim_{x \\to ${limPoint}} f(x)`} display={true} />
                     </div>
 
                     {/* Límites laterales */}
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-                      <div style={{ background:"rgba(167,139,250,0.08)", border:"1px solid rgba(167,139,250,0.2)", borderRadius:10, padding:"12px", textAlign:"center" }}>
-                        <div style={{ fontSize:"0.65rem", color:"#a78bfa", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Límite izquierdo</div>
-                        <div style={{ color:"#e2e8f0", fontSize:"1rem", fontFamily:"monospace" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                      <div style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)", borderRadius: 10, padding: "12px", textAlign: "center" }}>
+                        <div style={{ fontSize: "0.65rem", color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Límite izquierdo</div>
+                        <div style={{ color: "#e2e8f0", fontSize: "1rem", fontFamily: "monospace" }}>
                           {limResult.fromLeft !== null ? limResult.fromLeft.toFixed(6) : "—"}
                         </div>
                       </div>
-                      <div style={{ background:"rgba(56,189,248,0.08)", border:"1px solid rgba(56,189,248,0.2)", borderRadius:10, padding:"12px", textAlign:"center" }}>
-                        <div style={{ fontSize:"0.65rem", color:"#38bdf8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Límite derecho</div>
-                        <div style={{ color:"#e2e8f0", fontSize:"1rem", fontFamily:"monospace" }}>
+                      <div style={{ background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 10, padding: "12px", textAlign: "center" }}>
+                        <div style={{ fontSize: "0.65rem", color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Límite derecho</div>
+                        <div style={{ color: "#e2e8f0", fontSize: "1rem", fontFamily: "monospace" }}>
                           {limResult.fromRight !== null ? limResult.fromRight.toFixed(6) : "—"}
                         </div>
                       </div>
                     </div>
 
                     {/* Resultado final */}
-                    <div style={{ background:limResult.exists?"rgba(16,185,129,0.1)":"rgba(239,68,68,0.1)", border:`1px solid ${limResult.exists?"#10b98144":"#ef444444"}`, borderRadius:12, padding:"16px", textAlign:"center", marginBottom:12 }}>
-                      <div style={{ fontSize:"0.65rem", color:limResult.exists?"#10b981":"#ef4444", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>
-                        {limResult.exists?"✓ LÍMITE EXISTE":"✗ LÍMITE NO EXISTE"}
+                    <div style={{ background: limResult.exists ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${limResult.exists ? "#10b98144" : "#ef444444"}`, borderRadius: 12, padding: "16px", textAlign: "center", marginBottom: 12 }}>
+                      <div style={{ fontSize: "0.65rem", color: limResult.exists ? "#10b981" : "#ef4444", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
+                        {limResult.exists ? "✓ LÍMITE EXISTE" : "✗ LÍMITE NO EXISTE"}
                       </div>
                       {limResult.exists && (
-                        <div style={{ fontSize:"1.5rem", color:"#10b981", fontFamily:"monospace" }}>
+                        <div style={{ fontSize: "1.5rem", color: "#10b981", fontFamily: "monospace" }}>
                           = {limResult.exact?.toFixed(6)}
                         </div>
                       )}
                     </div>
 
-                    <div style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:"12px 14px", fontSize:"0.8rem", color:"#64748b", lineHeight:1.6 }}>
+                    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 14px", fontSize: "0.8rem", color: "#64748b", lineHeight: 1.6 }}>
                       💡 {limResult.info}
                     </div>
                   </div>
@@ -2103,27 +2239,27 @@ export default function App() {
             {/* Gráfica del límite */}
             {limPoints && (
               <div style={S.fullWrap}>
-                <div style={{ ...S.graphCard, animation:"cyberSlide 0.5s ease" }}>
+                <div style={{ ...S.graphCard, animation: "cyberSlide 0.5s ease" }}>
                   <span style={S.label}>gráfica cerca de x = {limPoint}</span>
-                  <p style={{ fontSize:"0.72rem", color:"#94a3b8", margin:"4px 0 10px" }}>
-                    <span style={{color:"#ffe620"}}>┅ x = {limPoint}</span> &nbsp;·&nbsp; punto donde se evalúa el límite
+                  <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: "4px 0 10px" }}>
+                    <span style={{ color: "#ffe620" }}>┅ x = {limPoint}</span> &nbsp;·&nbsp; punto donde se evalúa el límite
                   </p>
                   <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={limPoints} margin={{top:5,right:20,left:0,bottom:5}}>
+                    <LineChart data={limPoints} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} />
-                      <YAxis stroke="#2d3748" tick={{fill:"#64748b",fontSize:10}} domain={["auto","auto"]} width={48} />
-                      <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(56,189,248,0.3)",borderRadius:8,fontSize:12}} labelFormatter={v=>`x = ${v}`} formatter={(val)=>[val!==null?val.toFixed(4):"—","f(x)"]} />
-                      <ReferenceLine x={parseFloat(limPoint)} stroke="#ffe620" strokeDasharray="6 3" strokeWidth={2} label={{ value:`x=${limPoint}`, fill:"#ffe620", fontSize:10, position:"top" }} />
+                      <XAxis dataKey="x" stroke="#2d3748" tick={{ fill: "#64748b", fontSize: 10 }} />
+                      <YAxis stroke="#2d3748" tick={{ fill: "#64748b", fontSize: 10 }} domain={["auto", "auto"]} width={48} />
+                      <Tooltip contentStyle={{ background: "rgba(6,6,18,0.97)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: 8, fontSize: 12 }} labelFormatter={v => `x = ${v}`} formatter={(val) => [val !== null ? val.toFixed(4) : "—", "f(x)"]} />
+                      <ReferenceLine x={parseFloat(limPoint)} stroke="#ffe620" strokeDasharray="6 3" strokeWidth={2} label={{ value: `x=${limPoint}`, fill: "#ffe620", fontSize: 10, position: "top" }} />
                       {limResult?.exists && (
-                        <ReferenceLine y={limResult.exact} stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5} label={{ value:`L=${limResult.exact?.toFixed(3)}`, fill:"#10b981", fontSize:10, position:"right" }} />
+                        <ReferenceLine y={limResult.exact} stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: `L=${limResult.exact?.toFixed(3)}`, fill: "#10b981", fontSize: 10, position: "right" }} />
                       )}
                       <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2.5} dot={false} connectNulls={false} />
                     </LineChart>
                   </ResponsiveContainer>
                   {limResult?.exists && (
-                    <p style={{ fontSize:"0.75rem", color:"#94a3b8", marginTop:10 }}>
-                      La función se aproxima a <strong style={{color:"#10b981"}}>{limResult.exact?.toFixed(4)}</strong> cuando x → {limPoint}
+                    <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 10 }}>
+                      La función se aproxima a <strong style={{ color: "#10b981" }}>{limResult.exact?.toFixed(4)}</strong> cuando x → {limPoint}
                     </p>
                   )}
                 </div>
@@ -2141,15 +2277,14 @@ export default function App() {
                 <LHopitalSteps
                   analisis={lhAnalisis}
                   limPoint={limPoint}
-                  limExpr={limExpr}
-                />
+                  limExpr={limExpr} />
               </div>
             )}
           </>
         )}
 
         {/* ═══════════════ TAB: INTEGRALES ═══════════════ */}
-        {tab==="int" && (
+        {tab === "int" && (
           <>
             {/* CALCULADORA INTERACTIVA */}
             <div style={S.grid}>
@@ -2162,38 +2297,37 @@ export default function App() {
                   style={S.inputBox}
                   value={intExpr}
                   onChange={e => setIntExpr(e.target.value)}
-                  onKeyDown={e => e.key==="Enter" && handleIntegrate()}
+                  onKeyDown={e => e.key === "Enter" && handleIntegrate()}
                   placeholder="Ej: x^3  sin(x)  e^x  1/x  sqrt(x)"
-                  spellCheck={false}
-                />
+                  spellCheck={false} />
                 {intError && <div style={S.error}>⚠ {intError}</div>}
                 <button style={S.btn} onClick={handleIntegrate}>CALCULAR INTEGRAL →</button>
 
                 {/* Ejemplos predefinidos */}
-                <div style={{ marginTop:16 }}>
+                <div style={{ marginTop: 16 }}>
                   <span style={S.label}>ejemplos rápidos</span>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {[
-                      { label:"x³",      fn:"x^3" },
-                      { label:"sin(x)",  fn:"sin(x)" },
-                      { label:"cos(x)",  fn:"cos(x)" },
-                      { label:"eˣ",      fn:"e^x" },
-                      { label:"ln(x)",   fn:"ln(x)" },
-                      { label:"1/x",     fn:"1/x" },
-                      { label:"√x",      fn:"sqrt(x)" },
-                      { label:"tan(x)",  fn:"tan(x)" },
+                      { label: "x³", fn: "x^3" },
+                      { label: "sin(x)", fn: "sin(x)" },
+                      { label: "cos(x)", fn: "cos(x)" },
+                      { label: "eˣ", fn: "e^x" },
+                      { label: "ln(x)", fn: "ln(x)" },
+                      { label: "1/x", fn: "1/x" },
+                      { label: "√x", fn: "sqrt(x)" },
+                      { label: "tan(x)", fn: "tan(x)" },
                     ].map(ej => (
-                      <button key={ej.fn} onClick={() => { setIntExpr(ej.fn); setIntResult(null); setIntError(""); setDefResult(null); }}
-                        style={{ padding:"5px 12px", borderRadius:8, border:"1px solid rgba(52,211,153,0.25)", background:"rgba(52,211,153,0.07)", color:"#6ee7b7", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}
-                        onMouseEnter={e => { e.target.style.background="rgba(52,211,153,0.18)"; e.target.style.borderColor="rgba(52,211,153,0.6)"; }}
-                        onMouseLeave={e => { e.target.style.background="rgba(52,211,153,0.07)"; e.target.style.borderColor="rgba(52,211,153,0.25)"; }}>
+                      <button key={ej.fn} onClick={() => { setIntExpr(ej.fn); setIntResult(null); setIntError(""); setDefResult(null); } }
+                        style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(52,211,153,0.25)", background: "rgba(52,211,153,0.07)", color: "#6ee7b7", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}
+                        onMouseEnter={e => { e.target.style.background = "rgba(52,211,153,0.18)"; e.target.style.borderColor = "rgba(52,211,153,0.6)"; } }
+                        onMouseLeave={e => { e.target.style.background = "rgba(52,211,153,0.07)"; e.target.style.borderColor = "rgba(52,211,153,0.25)"; } }>
                         {ej.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div style={{ marginTop:16 }}>
+                <div style={{ marginTop: 16 }}>
                   <span style={S.label}>teclado rápido</span>
                   <div style={S.kbGrid5}>
                     {NUMS.map(n => <button key={n} style={S.kbBtn("num")} onClick={() => insertInt(n)}>{n}</button>)}
@@ -2201,8 +2335,8 @@ export default function App() {
                   <div style={S.kbGrid4}>
                     {KEYBOARD.map(btn => <button key={btn.insert} style={S.kbBtn(btn.group)} onClick={() => insertInt(btn.insert)}>{btn.label}</button>)}
                   </div>
-                  <button style={{ ...S.kbBtn("del"), width:"100%", marginTop:5, padding:"8px" }}
-                    onClick={() => { setIntExpr(""); setIntResult(null); setIntError(""); }}>
+                  <button style={{ ...S.kbBtn("del"), width: "100%", marginTop: 5, padding: "8px" }}
+                    onClick={() => { setIntExpr(""); setIntResult(null); setIntError(""); } }>
                     Limpiar todo
                   </button>
                 </div>
@@ -2214,116 +2348,116 @@ export default function App() {
 
                 {!intResult && (
                   <div style={S.empty}>
-                    <div style={{ fontSize:"2.5rem", marginBottom:10, opacity:0.3 }}>∫</div>
-                    <p>Ingresa una función y pulsa<br/><strong style={{color:"#a78bfa"}}>CALCULAR INTEGRAL</strong></p>
-                    <p style={{fontSize:"0.75rem", color:"#64748b", marginTop:12}}>
+                    <div style={{ fontSize: "2.5rem", marginBottom: 10, opacity: 0.3 }}>∫</div>
+                    <p>Ingresa una función y pulsa<br /><strong style={{ color: "#a78bfa" }}>CALCULAR INTEGRAL</strong></p>
+                    <p style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 12 }}>
                       Soporta: x^n · sin(x) · cos(x) · tan(x) · e^x · ln(x) · 1/x · sqrt(x) · constantes
                     </p>
                   </div>
                 )}
 
                 {intResult?.success && (
-                  <div style={{ animation:"cyberSlide 0.4s ease" }}>
+                  <div style={{ animation: "cyberSlide 0.4s ease" }}>
                     {/* Tarjeta de regla aplicada */}
-                    <div style={{ ...S.ruleCard(intResult.color), marginBottom:16 }}>
-                      <div style={{ fontWeight:700, color:intResult.color, marginBottom:4, fontSize:"0.88rem" }}>
+                    <div style={{ ...S.ruleCard(intResult.color), marginBottom: 16 }}>
+                      <div style={{ fontWeight: 700, color: intResult.color, marginBottom: 4, fontSize: "0.88rem" }}>
                         📐 {intResult.rule}
                       </div>
-                      <div style={{ margin:"10px 0" }}>
+                      <div style={{ margin: "10px 0" }}>
                         <KaTeX formula={intResult.ruleLatex} display={true} />
                       </div>
-                      <div style={{ fontSize:"0.78rem", color:"#64748b", lineHeight:1.6 }}>
+                      <div style={{ fontSize: "0.78rem", color: "#64748b", lineHeight: 1.6 }}>
                         {intResult.explanation}
                       </div>
                     </div>
 
                     {/* Integral original → resultado */}
-                    <div style={{ marginBottom:14 }}>
+                    <div style={{ marginBottom: 14 }}>
                       <span style={S.label}>integral a resolver</span>
                       <div style={S.resultBox(false)}>
                         <KaTeX formula={`\\int ${intResult.inputLatex}\\,dx`} display={true} />
                       </div>
                     </div>
-                    <div style={{ textAlign:"center", fontSize:"1.3rem", color:"#a78bfa", margin:"6px 0" }}>↓</div>
+                    <div style={{ textAlign: "center", fontSize: "1.3rem", color: "#a78bfa", margin: "6px 0" }}>↓</div>
                     <div>
                       <span style={S.label}>antiderivada F(x)</span>
                       <div style={S.resultBox(true)}>
                         <KaTeX formula={intResult.resultLatex} display={true} />
                       </div>
                     </div>
-                    <div style={{ marginTop:8, fontSize:"0.72rem", color:"#64748b", textAlign:"center" }}>
+                    <div style={{ marginTop: 8, fontSize: "0.72rem", color: "#64748b", textAlign: "center" }}>
                       Texto: F(x) = {intResult.resultText} + C
                     </div>
                   </div>
                 )}
 
                 {intResult && !intResult.success && (
-                  <div style={{ ...S.error, marginTop:20 }}>
-                    <strong>⚠ No reconocido</strong><br/>{intResult.error}
+                  <div style={{ ...S.error, marginTop: 20 }}>
+                    <strong>⚠ No reconocido</strong><br />{intResult.error}
                   </div>
                 )}
               </div>
             </div>
 
             {/* INTEGRAL DEFINIDA */}
-            <div style={{ width:"100%", padding:"0 16px", boxSizing:"border-box", marginTop:20 }}>
-              <div style={{ ...glassCard, marginTop:0 }}>
-                <span style={{ fontSize:"0.85rem", fontWeight:700, color:"#38bdf8", display:"block", marginBottom:14 }}>∫ Integral Definida</span>
-                <p style={{ fontSize:"0.78rem", color:"#64748b", marginBottom:16, lineHeight:1.6 }}>
+            <div style={{ width: "100%", padding: "0 16px", boxSizing: "border-box", marginTop: 20 }}>
+              <div style={{ ...glassCard, marginTop: 0 }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#38bdf8", display: "block", marginBottom: 14 }}>∫ Integral Definida</span>
+                <p style={{ fontSize: "0.78rem", color: "#64748b", marginBottom: 16, lineHeight: 1.6 }}>
                   Calcula el área bajo la curva de f(x) entre dos puntos usando la Regla de Simpson (1000 subintervalos).
                 </p>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                   <div>
                     <span style={S.label}>límite inferior a</span>
-                    <input style={S.inputBox} value={defA} onChange={e=>setDefA(e.target.value)} placeholder="0" spellCheck={false} />
+                    <input style={S.inputBox} value={defA} onChange={e => setDefA(e.target.value)} placeholder="0" spellCheck={false} />
                   </div>
                   <div>
                     <span style={S.label}>límite superior b</span>
-                    <input style={S.inputBox} value={defB} onChange={e=>setDefB(e.target.value)} placeholder="1" spellCheck={false} />
+                    <input style={S.inputBox} value={defB} onChange={e => setDefB(e.target.value)} placeholder="1" spellCheck={false} />
                   </div>
                 </div>
                 {defError && <div style={S.error}>⚠ {defError}</div>}
-                <button style={{ ...cyberBtn, width:"100%", padding:"11px", marginBottom:16 }} onClick={handleDefiniteIntegral}>
+                <button style={{ ...cyberBtn, width: "100%", padding: "11px", marginBottom: 16 }} onClick={handleDefiniteIntegral}>
                   CALCULAR ÁREA →
                 </button>
 
                 {defResult?.success && (
-                  <div style={{ animation:"cyberSlide 0.4s ease" }}>
+                  <div style={{ animation: "cyberSlide 0.4s ease" }}>
                     {/* Notación */}
-                    <div style={{ textAlign:"center", marginBottom:14 }}>
+                    <div style={{ textAlign: "center", marginBottom: 14 }}>
                       <KaTeX formula={`\\int_{${defResult.a}}^{${defResult.b}} f(x)\\,dx`} display={true} />
                     </div>
                     {/* Resultado */}
-                    <div style={{ background:"rgba(56,189,248,0.08)", border:"1px solid rgba(56,189,248,0.3)", borderRadius:12, padding:"18px", textAlign:"center", marginBottom:14, boxShadow:"0 0 20px rgba(56,189,248,0.1)" }}>
-                      <div style={{ fontSize:"0.65rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Área bajo la curva</div>
-                      <div style={{ fontSize:"2rem", fontWeight:900, color:"#38bdf8", fontFamily:"monospace" }}>
+                    <div style={{ background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: 12, padding: "18px", textAlign: "center", marginBottom: 14, boxShadow: "0 0 20px rgba(56,189,248,0.1)" }}>
+                      <div style={{ fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Área bajo la curva</div>
+                      <div style={{ fontSize: "2rem", fontWeight: 900, color: "#38bdf8", fontFamily: "monospace" }}>
                         {defResult.result}
                       </div>
-                      <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:4 }}>unidades²</div>
+                      <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: 4 }}>unidades²</div>
                     </div>
                     {/* Gráfica con área sombreada */}
-                    <p style={{ fontSize:"0.72rem", color:"#94a3b8", margin:"0 0 8px" }}>
-                      <span style={{color:"#38bdf888"}}>▓</span> Área sombreada entre x={defResult.a} y x={defResult.b}
+                    <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: "0 0 8px" }}>
+                      <span style={{ color: "#38bdf888" }}>▓</span> Área sombreada entre x={defResult.a} y x={defResult.b}
                     </p>
                     <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart data={defResult.pts} margin={{top:5,right:16,left:0,bottom:5}}>
+                      <AreaChart data={defResult.pts} margin={{ top: 5, right: 16, left: 0, bottom: 5 }}>
                         <defs>
                           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%"  stopColor="#38bdf8" stopOpacity={0.35}/>
-                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.05}/>
+                            <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.05} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#64748b",fontSize:9}} />
-                        <YAxis stroke="#2d3748" tick={{fill:"#64748b",fontSize:9}} domain={["auto","auto"]} width={36} />
-                        <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(56,189,248,0.3)",borderRadius:8,fontSize:11}} labelFormatter={v=>`x = ${v}`} formatter={v=>[v?.toFixed(4),"f(x)"]} />
-                        <ReferenceLine x={defResult.a} stroke="#ffe620" strokeDasharray="5 3" strokeWidth={1.5} label={{value:`a=${defResult.a}`,fill:"#ffe620",fontSize:9,position:"top"}} />
-                        <ReferenceLine x={defResult.b} stroke="#ff6ee4" strokeDasharray="5 3" strokeWidth={1.5} label={{value:`b=${defResult.b}`,fill:"#ff6ee4",fontSize:9,position:"top"}} />
+                        <XAxis dataKey="x" stroke="#2d3748" tick={{ fill: "#64748b", fontSize: 9 }} />
+                        <YAxis stroke="#2d3748" tick={{ fill: "#64748b", fontSize: 9 }} domain={["auto", "auto"]} width={36} />
+                        <Tooltip contentStyle={{ background: "rgba(6,6,18,0.97)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: 8, fontSize: 11 }} labelFormatter={v => `x = ${v}`} formatter={v => [v?.toFixed(4), "f(x)"]} />
+                        <ReferenceLine x={defResult.a} stroke="#ffe620" strokeDasharray="5 3" strokeWidth={1.5} label={{ value: `a=${defResult.a}`, fill: "#ffe620", fontSize: 9, position: "top" }} />
+                        <ReferenceLine x={defResult.b} stroke="#ff6ee4" strokeDasharray="5 3" strokeWidth={1.5} label={{ value: `b=${defResult.b}`, fill: "#ff6ee4", fontSize: 9, position: "top" }} />
                         <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
                         <Area type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2} fill="url(#areaGrad)" connectNulls={false} />
                       </AreaChart>
                     </ResponsiveContainer>
-                    <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:8, lineHeight:1.6 }}>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: 8, lineHeight: 1.6 }}>
                       💡 El área puede ser negativa si la función está por debajo del eje x en ese intervalo.
                     </div>
                   </div>
@@ -2332,24 +2466,24 @@ export default function App() {
                   <div style={S.error}>⚠ {defResult.error}</div>
                 )}
                 {!defResult && (
-                  <div style={{ textAlign:"center", color:"#64748b", padding:"16px 0", fontSize:"0.82rem" }}>
-                    Ingresa una función arriba, define los límites a y b, y pulsa <strong style={{color:"#38bdf8"}}>CALCULAR ÁREA</strong>
+                  <div style={{ textAlign: "center", color: "#64748b", padding: "16px 0", fontSize: "0.82rem" }}>
+                    Ingresa una función arriba, define los límites a y b, y pulsa <strong style={{ color: "#38bdf8" }}>CALCULAR ÁREA</strong>
                   </div>
                 )}
               </div>
             </div>
 
             {/* TABLA DE REFERENCIA */}
-            <p style={{ textAlign:"center", color:"#ffffff", marginTop:32, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
+            <p style={{ textAlign: "center", color: "#ffffff", marginTop: 32, fontSize: "0.8rem", letterSpacing: "0.05em" }}>
               TABLA DE INTEGRALES DE REFERENCIA
             </p>
-            <div style={{ maxWidth:700, margin:"14px auto 0", padding:"0 16px" }}>
-              <div style={{ ...glassCard, display:"flex", alignItems:"flex-start", gap:12, marginTop:0 }}>
-                <span style={{ fontSize:"1.4rem" }}>💡</span>
+            <div style={{ maxWidth: 700, margin: "14px auto 0", padding: "0 16px" }}>
+              <div style={{ ...glassCard, display: "flex", alignItems: "flex-start", gap: 12, marginTop: 0 }}>
+                <span style={{ fontSize: "1.4rem" }}>💡</span>
                 <div>
-                  <div style={{ fontSize:"0.78rem", color:"#a78bfa", fontWeight:700, marginBottom:4 }}>Regla fundamental de la integración</div>
+                  <div style={{ fontSize: "0.78rem", color: "#a78bfa", fontWeight: 700, marginBottom: 4 }}>Regla fundamental de la integración</div>
                   <KaTeX formula={"\\int f'(x)\\,dx = f(x) + C"} display={true} />
-                  <div style={{ fontSize:"0.75rem", color:"#64748b", marginTop:8, lineHeight:1.6 }}>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 8, lineHeight: 1.6 }}>
                     La constante <em>C</em> representa la familia infinita de antiderivadas.
                   </div>
                 </div>
@@ -2358,16 +2492,16 @@ export default function App() {
             <div style={S.integGrid}>
               {INTEGRALS.map(item => (
                 <div key={item.name} style={S.integCard(item.color)}>
-                  <div style={{ fontWeight:700, color:item.color, marginBottom:10, fontSize:"0.82rem" }}>{item.name}</div>
-                  <div style={{ marginBottom:8 }}>
-                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Integral</span>
-                    <div style={{ marginTop:6 }}><KaTeX formula={item.integral} display={true} /></div>
+                  <div style={{ fontWeight: 700, color: item.color, marginBottom: 10, fontSize: "0.82rem" }}>{item.name}</div>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ fontSize: "0.62rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Integral</span>
+                    <div style={{ marginTop: 6 }}><KaTeX formula={item.integral} display={true} /></div>
                   </div>
-                  <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8, marginBottom:8 }}>
-                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Resultado</span>
-                    <div style={{ marginTop:6 }}><KaTeX formula={item.result} display={true} /></div>
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: "0.62rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Resultado</span>
+                    <div style={{ marginTop: 6 }}><KaTeX formula={item.result} display={true} /></div>
                   </div>
-                  <div style={{ fontSize:"0.72rem", color:"#94a3b8", lineHeight:1.55, borderTop:"1px solid rgba(255,255,255,0.04)", paddingTop:8 }}>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.55, borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: 8 }}>
                     {item.tip}
                   </div>
                 </div>
@@ -2377,36 +2511,36 @@ export default function App() {
         )}
 
         {/* ═══════════════ TAB: QUIZ ═══════════════ */}
-        {tab==="quiz" && (
+        {tab === "quiz" && (
           <>
-            <p style={{ textAlign:"center", color:"#64748b", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
+            <p style={{ textAlign: "center", color: "#64748b", marginTop: 20, fontSize: "0.8rem", letterSpacing: "0.05em" }}>
               MODO QUIZ — ADIVINA LA DERIVADA
             </p>
-            <div style={{ width:"100%", padding:"0 16px", boxSizing:"border-box", marginTop:16 }}>
+            <div style={{ width: "100%", padding: "0 16px", boxSizing: "border-box", marginTop: 16 }}>
               <QuizMode />
             </div>
           </>
         )}
 
         {/* ═══════════════ TAB: GLOSARIO ═══════════════ */}
-        {tab==="glos" && (
+        {tab === "glos" && (
           <>
-            <p style={{ textAlign:"center", color:"#64748b", marginTop:20, fontSize:"0.8rem", letterSpacing:"0.05em" }}>
+            <p style={{ textAlign: "center", color: "#64748b", marginTop: 20, fontSize: "0.8rem", letterSpacing: "0.05em" }}>
               REGLAS FUNDAMENTALES DE DERIVACIÓN
             </p>
             <div style={S.glossGrid}>
               {GLOSSARY.map(item => (
                 <div key={item.name} style={S.glossCard(item.color)}>
-                  <div style={{ fontWeight:700, color:item.color, marginBottom:10, fontSize:"0.82rem" }}>{item.name}</div>
-                  <div style={{ marginBottom:8 }}>
-                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Regla general</span>
-                    <div style={{ marginTop:4 }}>
+                  <div style={{ fontWeight: 700, color: item.color, marginBottom: 10, fontSize: "0.82rem" }}>{item.name}</div>
+                  <div style={{ marginBottom: 8 }}>
+                    <span style={{ fontSize: "0.62rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Regla general</span>
+                    <div style={{ marginTop: 4 }}>
                       <KaTeX formula={`\\dfrac{d}{dx}\\left[${item.formula}\\right] = ${item.deriv}`} display={true} />
                     </div>
                   </div>
                   <div>
-                    <span style={{ fontSize:"0.62rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Ejemplo</span>
-                    <div style={{ marginTop:4 }}><KaTeX formula={item.example} /></div>
+                    <span style={{ fontSize: "0.62rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Ejemplo</span>
+                    <div style={{ marginTop: 4 }}><KaTeX formula={item.example} /></div>
                   </div>
                 </div>
               ))}
@@ -2415,7 +2549,17 @@ export default function App() {
         )}
       </div>
 
-      <style>{`
+      {/* ═══════════════ TAB: NOTAS ═══════════════ */}
+      {tab === "notas" && (
+        <TabNotas
+          notas={notas} setNotas={setNotas}
+          notaActual={notaActual} setNotaActual={setNotaActual}
+          notaInput={notaInput} setNotaInput={setNotaInput}
+          notaBuscar={notaBuscar} setNotaBuscar={setNotaBuscar}
+        />
+      )}
+
+    </div><style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
         @keyframes cyberSlide {
           from { opacity:0; transform:translateY(14px) scale(0.98); }
@@ -2448,6 +2592,6 @@ export default function App() {
         .katex { color: #e2e8f0 !important; }
         pre { color: #cbd5e1 !important; }
       `}</style>
-    </div>
+  </>
   );
 }
