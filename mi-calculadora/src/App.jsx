@@ -1224,6 +1224,111 @@ function QuizMode() {
   );
 }
 
+// ─── MOTOR: PUNTOS CRÍTICOS ──────────────────────────────────
+// Encuentra máximos, mínimos e inflexiones de f(x)
+// usando la primera y segunda derivada numéricamente.
+function computeCriticalPoints(raw) {
+  try {
+    const proc  = preprocess(raw);
+    const deriv = math.simplify(math.derivative(proc, "x")).toString();
+    const deriv2= math.simplify(math.derivative(deriv, "x")).toString();
+
+    const puntos = [];
+    const range  = [-10, 10];
+    const steps  = 2000;
+    const h      = (range[1] - range[0]) / steps;
+
+    let prevSign = null;
+    for (let i = 0; i <= steps; i++) {
+      const x = range[0] + i * h;
+      try {
+        const dy = math.evaluate(deriv, { x });
+        if (!isFinite(dy)) { prevSign = null; continue; }
+        const sign = dy >= 0 ? 1 : -1;
+        if (prevSign !== null && prevSign !== sign) {
+          // Bisección para refinar el cero de f'
+          let lo = x - h, hi = x;
+          for (let j = 0; j < 30; j++) {
+            const mid = (lo + hi) / 2;
+            const v   = math.evaluate(deriv, { x: mid });
+            if (!isFinite(v)) break;
+            if ((v >= 0 ? 1 : -1) === prevSign) lo = mid; else hi = mid;
+          }
+          const xc   = (lo + hi) / 2;
+          const d2   = math.evaluate(deriv2, { x: xc });
+          const fy   = math.evaluate(proc,   { x: xc });
+          const tipo = !isFinite(d2) ? "indefinido"
+                     : Math.abs(d2)  < 1e-6 ? "posible inflexión"
+                     : d2 < 0 ? "máximo local"
+                     : "mínimo local";
+          // Evitar duplicados muy cercanos
+          const yaExiste = puntos.some(p => Math.abs(p.x - xc) < 0.05);
+          if (!yaExiste) puntos.push({ x: +xc.toFixed(5), y: +fy.toFixed(5), d2: +d2.toFixed(5), tipo });
+        }
+        prevSign = sign;
+      } catch { prevSign = null; }
+    }
+
+    // Buscar inflexiones (ceros de f'')
+    prevSign = null;
+    for (let i = 0; i <= steps; i++) {
+      const x = range[0] + i * h;
+      try {
+        const d2 = math.evaluate(deriv2, { x });
+        if (!isFinite(d2)) { prevSign = null; continue; }
+        const sign = d2 >= 0 ? 1 : -1;
+        if (prevSign !== null && prevSign !== sign) {
+          const xc = x - h / 2;
+          const fy = math.evaluate(proc, { x: xc });
+          const yaExiste = puntos.some(p => Math.abs(p.x - xc) < 0.05);
+          if (!yaExiste && isFinite(fy)) puntos.push({ x: +xc.toFixed(5), y: +fy.toFixed(5), d2: 0, tipo: "inflexión" });
+        }
+        prevSign = sign;
+      } catch { prevSign = null; }
+    }
+
+    return { success: true, puntos: puntos.sort((a, b) => a.x - b.x), deriv, deriv2 };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ─── MOTOR: INTEGRAL DEFINIDA ─────────────────────────────────
+// Calcula ∫ₐᵇ f(x) dx numéricamente usando la regla de Simpson
+function computeDefiniteIntegral(raw, a, b) {
+  try {
+    const proc = preprocess(raw);
+    const n    = 1000; // debe ser par
+    const h    = (b - a) / n;
+    let sum    = 0;
+    for (let i = 0; i <= n; i++) {
+      const x = a + i * h;
+      let v;
+      try { v = math.evaluate(proc, { x }); } catch { v = 0; }
+      if (!isFinite(v)) v = 0;
+      const coef = i === 0 || i === n ? 1 : i % 2 === 0 ? 2 : 4;
+      sum += coef * v;
+    }
+    const result = (h / 3) * sum;
+
+    // Puntos para la gráfica del área
+    const pts = [];
+    const gSteps = 120;
+    const gH = (b - a) / gSteps;
+    for (let i = 0; i <= gSteps; i++) {
+      const x = a + i * gH;
+      try {
+        const y = math.evaluate(proc, { x });
+        pts.push({ x: +x.toFixed(4), y: isFinite(y) && Math.abs(y) < 1e4 ? +y.toFixed(4) : null });
+      } catch { pts.push({ x: +x.toFixed(4), y: null }); }
+    }
+
+    return { success: true, result: +result.toFixed(8), pts, a, b };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
 // ─── TECLADO ─────────────────────────────────────────────────
 const KEYBOARD = [
   { label:"x",   insert:"x",     group:"var"   },
@@ -1312,6 +1417,16 @@ export default function App() {
   const [intResult, setIntResult] = useState(null);
   const [intError,  setIntError]  = useState("");
 
+  // Integral definida
+  const [defA,      setDefA]      = useState("0");
+  const [defB,      setDefB]      = useState("1");
+  const [defResult, setDefResult] = useState(null);
+  const [defError,  setDefError]  = useState("");
+
+  // Puntos críticos
+  const [criticos,     setCriticos]     = useState(null);
+  const [criticosError,setCriticosError]= useState("");
+
   const inputRef    = useRef(null);
   const limInputRef = useRef(null);  // ref para el input de límites
   const intInputRef = useRef(null);  // ref para el input de integrales
@@ -1366,6 +1481,23 @@ export default function App() {
     setIntError("");
     setIntResult(computeIntegral(intExpr));
   }, [intExpr]);
+
+  // Calcula la integral definida
+  const handleDefiniteIntegral = useCallback(() => {
+    if (!intExpr.trim()) { setDefError("Ingresa una función primero."); return; }
+    const a = parseFloat(defA), b = parseFloat(defB);
+    if (isNaN(a) || isNaN(b)) { setDefError("Los límites a y b deben ser números."); return; }
+    if (a >= b) { setDefError("El límite inferior a debe ser menor que b."); return; }
+    setDefError("");
+    setDefResult(computeDefiniteIntegral(intExpr, a, b));
+  }, [intExpr, defA, defB]);
+
+  // Calcula puntos críticos de la función actual
+  const handleCriticalPoints = useCallback(() => {
+    if (!result?.success) { setCriticosError("Calcula primero una derivada."); return; }
+    setCriticosError("");
+    setCriticos(computeCriticalPoints(input));
+  }, [result, input]);
 
   const handleDerive = useCallback(() => {
     if (!input.trim()) { setError("Ingresa una función primero."); return; }
@@ -1639,6 +1771,59 @@ export default function App() {
             <div style={S.fullWrap}>
               <CalculationHistory historial={historial} onSeleccionar={handleReutilizar} onLimpiar={() => { setHistorial([]); setMostrarPasos(false); setPasos([]); }} />
             </div>
+
+            {/* ── PUNTOS CRÍTICOS ── */}
+            {result?.success && (
+              <div style={S.fullWrap}>
+                <div style={{ ...glassCard }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexWrap:"wrap", gap:8 }}>
+                    <span style={{ fontSize:"0.85rem", fontWeight:700, color:"#f59e0b" }}>📍 Puntos Críticos</span>
+                    <button onClick={handleCriticalPoints}
+                      style={{ ...cyberBtn, padding:"7px 18px", fontSize:"0.8rem", background:"linear-gradient(135deg,#f59e0b,#f97316)" }}>
+                      Analizar f(x)
+                    </button>
+                  </div>
+                  {criticosError && <div style={S.error}>⚠ {criticosError}</div>}
+                  {criticos && !criticos.success && <div style={S.error}>⚠ {criticos.error}</div>}
+                  {criticos?.success && (
+                    <>
+                      <div style={{ fontSize:"0.75rem", color:"#64748b", marginBottom:14, lineHeight:1.7 }}>
+                        <strong style={{color:"#f59e0b"}}>f'(x)</strong> = {criticos.deriv} &nbsp;·&nbsp;
+                        <strong style={{color:"#38bdf8"}}>f''(x)</strong> = {criticos.deriv2}
+                      </div>
+                      {criticos.puntos.length === 0 ? (
+                        <div style={{ textAlign:"center", color:"#4a5568", padding:"20px 0" }}>No se encontraron puntos críticos en [-10, 10]</div>
+                      ) : (
+                        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10 }}>
+                          {criticos.puntos.map((p, i) => {
+                            const col = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":p.tipo==="inflexión"?"#38bdf8":"#a78bfa";
+                            const icon = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":p.tipo==="inflexión"?"↔":"?";
+                            return (
+                              <div key={i} style={{ background:`${col}10`, border:`1px solid ${col}44`, borderRadius:12, padding:"12px 16px" }}>
+                                <div style={{ color:col, fontWeight:700, fontSize:"0.85rem", marginBottom:6 }}>{icon} {p.tipo}</div>
+                                <div style={{ fontSize:"0.8rem", color:"#e2e8f0", fontFamily:"monospace" }}>x = {p.x}</div>
+                                <div style={{ fontSize:"0.8rem", color:"#e2e8f0", fontFamily:"monospace" }}>f(x) = {p.y}</div>
+                                {p.tipo !== "inflexión" && (
+                                  <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:4 }}>f''(x) = {p.d2}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div style={{ marginTop:12, padding:"10px 14px", background:"rgba(0,0,0,0.2)", borderRadius:10, fontSize:"0.75rem", color:"#64748b", lineHeight:1.7 }}>
+                        💡 <strong style={{color:"#94a3b8"}}>Criterio de la 2ª derivada:</strong> f''(x) &lt; 0 → máximo local · f''(x) &gt; 0 → mínimo local · f''(x) ≈ 0 → posible inflexión
+                      </div>
+                    </>
+                  )}
+                  {!criticos && (
+                    <div style={{ textAlign:"center", color:"#2d3748", padding:"20px 0", fontSize:"0.82rem" }}>
+                      Pulsa <strong style={{color:"#f59e0b"}}>Analizar f(x)</strong> para encontrar máximos, mínimos e inflexiones
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -1908,6 +2093,68 @@ export default function App() {
                 {intResult && !intResult.success && (
                   <div style={{ ...S.error, marginTop:20 }}>
                     <strong>⚠ No reconocido</strong><br/>{intResult.error}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* INTEGRAL DEFINIDA */}
+            <div style={{ width:"100%", padding:"0 32px", boxSizing:"border-box", marginTop:20 }}>
+              <div style={{ ...glassCard, marginTop:0 }}>
+                <span style={{ fontSize:"0.85rem", fontWeight:700, color:"#38bdf8", display:"block", marginBottom:14 }}>∫ Integral Definida</span>
+                <p style={{ fontSize:"0.78rem", color:"#64748b", marginBottom:16, lineHeight:1.6 }}>
+                  Calcula el área bajo la curva de f(x) entre dos puntos usando la Regla de Simpson (1000 subintervalos).
+                </p>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+                  <div>
+                    <span style={S.label}>límite inferior a</span>
+                    <input style={S.inputBox} value={defA} onChange={e=>setDefA(e.target.value)} placeholder="0" spellCheck={false} />
+                  </div>
+                  <div>
+                    <span style={S.label}>límite superior b</span>
+                    <input style={S.inputBox} value={defB} onChange={e=>setDefB(e.target.value)} placeholder="1" spellCheck={false} />
+                  </div>
+                </div>
+                {defError && <div style={S.error}>⚠ {defError}</div>}
+                <button style={{ ...cyberBtn, width:"100%", padding:"11px", marginBottom:16 }} onClick={handleDefiniteIntegral}>
+                  CALCULAR ÁREA →
+                </button>
+
+                {defResult?.success && (
+                  <div style={{ animation:"cyberSlide 0.4s ease" }}>
+                    {/* Notación */}
+                    <div style={{ textAlign:"center", marginBottom:14 }}>
+                      <KaTeX formula={`\\int_{${defResult.a}}^{${defResult.b}} f(x)\\,dx`} display={true} />
+                    </div>
+                    {/* Resultado */}
+                    <div style={{ background:"rgba(56,189,248,0.08)", border:"1px solid rgba(56,189,248,0.3)", borderRadius:12, padding:"18px", textAlign:"center", marginBottom:14, boxShadow:"0 0 20px rgba(56,189,248,0.1)" }}>
+                      <div style={{ fontSize:"0.65rem", color:"#4a5568", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>Área bajo la curva</div>
+                      <div style={{ fontSize:"2rem", fontWeight:900, color:"#38bdf8", fontFamily:"monospace" }}>
+                        {defResult.result}
+                      </div>
+                      <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:4 }}>unidades²</div>
+                    </div>
+                    {/* Mini gráfica del área */}
+                    <ResponsiveContainer width="100%" height={180}>
+                      <LineChart data={defResult.pts} margin={{top:5,right:16,left:0,bottom:5}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="x" stroke="#2d3748" tick={{fill:"#4a5568",fontSize:9}} />
+                        <YAxis stroke="#2d3748" tick={{fill:"#4a5568",fontSize:9}} domain={["auto","auto"]} width={32} />
+                        <Tooltip contentStyle={{background:"rgba(6,6,18,0.97)",border:"1px solid rgba(56,189,248,0.3)",borderRadius:8,fontSize:11}} labelFormatter={v=>`x = ${v}`} formatter={v=>[v?.toFixed(4),"f(x)"]} />
+                        <Line type="monotone" dataKey="y" stroke="#38bdf8" strokeWidth={2} dot={false} connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:8, lineHeight:1.6 }}>
+                      💡 El área puede ser negativa si la función está por debajo del eje x en ese intervalo.
+                    </div>
+                  </div>
+                )}
+                {defResult && !defResult.success && (
+                  <div style={S.error}>⚠ {defResult.error}</div>
+                )}
+                {!defResult && (
+                  <div style={{ textAlign:"center", color:"#2d3748", padding:"16px 0", fontSize:"0.82rem" }}>
+                    Ingresa una función arriba, define los límites a y b, y pulsa <strong style={{color:"#38bdf8"}}>CALCULAR ÁREA</strong>
                   </div>
                 )}
               </div>
