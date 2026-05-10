@@ -1787,32 +1787,61 @@ export default function App() {
                   {criticos && !criticos.success && <div style={S.error}>⚠ {criticos.error}</div>}
                   {criticos?.success && (
                     <>
-                      <div style={{ fontSize:"0.75rem", color:"#64748b", marginBottom:14, lineHeight:1.7 }}>
-                        <strong style={{color:"#f59e0b"}}>f'(x)</strong> = {criticos.deriv} &nbsp;·&nbsp;
-                        <strong style={{color:"#38bdf8"}}>f''(x)</strong> = {criticos.deriv2}
+                      {/* Derivadas encontradas */}
+                      <div style={{ fontSize:"0.75rem", color:"#64748b", marginBottom:12, lineHeight:1.8, background:"rgba(0,0,0,0.2)", borderRadius:10, padding:"10px 14px" }}>
+                        <div><strong style={{color:"#f59e0b"}}>f'(x)</strong> = {criticos.deriv}</div>
+                        <div><strong style={{color:"#38bdf8"}}>f''(x)</strong> = {criticos.deriv2}</div>
                       </div>
+
+                      {/* Resumen de cuántos encontró */}
+                      {criticos.puntos.length > 0 && (() => {
+                        const maximos   = criticos.puntos.filter(p => p.tipo === "máximo local").length;
+                        const minimos   = criticos.puntos.filter(p => p.tipo === "mínimo local").length;
+                        const inflexiones = criticos.puntos.filter(p => p.tipo === "inflexión").length;
+                        return (
+                          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
+                            {maximos > 0    && <span style={{ fontSize:"0.75rem", background:"#10b98120", color:"#10b981", border:"1px solid #10b98144", borderRadius:999, padding:"3px 12px" }}>▲ {maximos} máximo{maximos>1?"s":""}</span>}
+                            {minimos > 0    && <span style={{ fontSize:"0.75rem", background:"#ef444420", color:"#ef4444", border:"1px solid #ef444444", borderRadius:999, padding:"3px 12px" }}>▼ {minimos} mínimo{minimos>1?"s":""}</span>}
+                            {inflexiones > 0 && <span style={{ fontSize:"0.75rem", background:"#38bdf820", color:"#38bdf8", border:"1px solid #38bdf844", borderRadius:999, padding:"3px 12px" }}>↔ {inflexiones} inflexión{inflexiones>1?"es":""}</span>}
+                          </div>
+                        );
+                      })()}
+
                       {criticos.puntos.length === 0 ? (
                         <div style={{ textAlign:"center", color:"#4a5568", padding:"20px 0" }}>No se encontraron puntos críticos en [-10, 10]</div>
                       ) : (
-                        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:10 }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
                           {criticos.puntos.map((p, i) => {
-                            const col = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":p.tipo==="inflexión"?"#38bdf8":"#a78bfa";
+                            const col  = p.tipo==="máximo local"?"#10b981":p.tipo==="mínimo local"?"#ef4444":p.tipo==="inflexión"?"#38bdf8":"#a78bfa";
                             const icon = p.tipo==="máximo local"?"▲":p.tipo==="mínimo local"?"▼":p.tipo==="inflexión"?"↔":"?";
+                            const explicacion = p.tipo==="máximo local"
+                              ? `La función sube, llega al tope en este punto y empieza a bajar. f''(x) < 0 confirma que la curva es cóncava hacia abajo (∩).`
+                              : p.tipo==="mínimo local"
+                              ? `La función baja, toca el punto más bajo aquí y vuelve a subir. f''(x) > 0 confirma que la curva es cóncava hacia arriba (∪).`
+                              : `La función cambia de curvatura aquí: pasa de cóncava a convexa (o viceversa). f'(x) puede no ser cero, pero f''(x) ≈ 0.`;
                             return (
-                              <div key={i} style={{ background:`${col}10`, border:`1px solid ${col}44`, borderRadius:12, padding:"12px 16px" }}>
-                                <div style={{ color:col, fontWeight:700, fontSize:"0.85rem", marginBottom:6 }}>{icon} {p.tipo}</div>
-                                <div style={{ fontSize:"0.8rem", color:"#e2e8f0", fontFamily:"monospace" }}>x = {p.x}</div>
-                                <div style={{ fontSize:"0.8rem", color:"#e2e8f0", fontFamily:"monospace" }}>f(x) = {p.y}</div>
+                              <div key={i} style={{ background:`${col}10`, border:`1px solid ${col}44`, borderRadius:12, padding:"14px 16px" }}>
+                                <div style={{ color:col, fontWeight:700, fontSize:"0.85rem", marginBottom:8 }}>{icon} {p.tipo}</div>
+                                <div style={{ fontSize:"0.82rem", color:"#e2e8f0", fontFamily:"monospace", marginBottom:2 }}>x = {p.x}</div>
+                                <div style={{ fontSize:"0.82rem", color:"#e2e8f0", fontFamily:"monospace", marginBottom:8 }}>f(x) = {p.y}</div>
                                 {p.tipo !== "inflexión" && (
-                                  <div style={{ fontSize:"0.72rem", color:"#64748b", marginTop:4 }}>f''(x) = {p.d2}</div>
+                                  <div style={{ fontSize:"0.72rem", color:"#64748b", marginBottom:8 }}>f''(x) = {p.d2}</div>
                                 )}
+                                <div style={{ fontSize:"0.72rem", color:"#94a3b8", lineHeight:1.6, borderTop:`1px solid ${col}22`, paddingTop:8 }}>
+                                  {explicacion}
+                                </div>
                               </div>
                             );
                           })}
                         </div>
                       )}
-                      <div style={{ marginTop:12, padding:"10px 14px", background:"rgba(0,0,0,0.2)", borderRadius:10, fontSize:"0.75rem", color:"#64748b", lineHeight:1.7 }}>
-                        💡 <strong style={{color:"#94a3b8"}}>Criterio de la 2ª derivada:</strong> f''(x) &lt; 0 → máximo local · f''(x) &gt; 0 → mínimo local · f''(x) ≈ 0 → posible inflexión
+
+                      {/* Leyenda del criterio */}
+                      <div style={{ marginTop:14, padding:"12px 14px", background:"rgba(0,0,0,0.25)", borderRadius:10, fontSize:"0.74rem", color:"#64748b", lineHeight:1.8 }}>
+                        <strong style={{color:"#94a3b8", display:"block", marginBottom:4}}>📐 Criterio de la 2ª Derivada</strong>
+                        <span style={{color:"#10b981"}}>f''(x) &lt; 0</span> → la curva es cóncava ∩ → <strong style={{color:"#10b981"}}>máximo local</strong><br/>
+                        <span style={{color:"#ef4444"}}>f''(x) &gt; 0</span> → la curva es cóncava ∪ → <strong style={{color:"#ef4444"}}>mínimo local</strong><br/>
+                        <span style={{color:"#38bdf8"}}>f''(x) ≈ 0</span> → posible cambio de curvatura → <strong style={{color:"#38bdf8"}}>inflexión</strong>
                       </div>
                     </>
                   )}
