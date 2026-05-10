@@ -1663,7 +1663,7 @@ export default function App() {
 
       <div style={{ position:"relative", zIndex:1 }}>
         <div style={S.header}>
-          <h1 style={S.title}>TUTOR CIBERPUNK</h1>
+          <h1 style={S.title}>NEO∂ERIVA</h1>
           <p style={S.subtitle}>Cálculo Diferencial · Sistema de Estudio</p>
           <span style={S.badge}>DERIVADAS · LÍMITES · INTEGRALES · QUIZ</span>
           <div style={S.tabs}>
