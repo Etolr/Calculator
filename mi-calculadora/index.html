@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- ── ÍCONO DE LA APP ──────────────────────────────────────
+         favicon.svg: el ícono que aparece en la pestaña del navegador.
+         Los iconos de 192 y 512 px son para la pantalla de inicio del celular.
+         Tienes que crear esos archivos — instrucciones al final del index.html.
+    ──────────────────────────────────────────────────────────── -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- ── VIEWPORT ─────────────────────────────────────────────
+         initial-scale=1 garantiza que el tutor se vea bien en celular.
+         viewport-fit=cover hace que el contenido llegue hasta las esquinas
+         del iPhone con notch (pantalla completa de verdad).
+    ──────────────────────────────────────────────────────────── -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Tutor Ciberpunk — Cálculo</title>
+    <meta name="description" content="Tutor interactivo de derivadas, límites e integrales con explicaciones paso a paso y modo offline." />
+
+    <!-- ── META TAGS PARA PWA ───────────────────────────────────
+         theme-color: el color de la barra del navegador en Android.
+         apple-mobile-web-app: configuración para iOS (Safari no usa manifest).
+         apple-mobile-web-app-status-bar-style: barra de estado translúcida en iPhone.
+    ──────────────────────────────────────────────────────────── -->
+    <meta name="theme-color" content="#a78bfa" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tutor Calc" />
+
+    <!-- ── MANIFEST ─────────────────────────────────────────────
+         El manifest.json es el archivo que le dice al navegador cómo
+         mostrar la app cuando se instala: nombre, colores, íconos.
+         Sin esto el botón "Instalar app" no aparece en Android/Chrome.
+    ──────────────────────────────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- ── REGISTRO DEL SERVICE WORKER ─────────────────────────
+         Este script se ejecuta apenas carga la página.
+         Registra el service worker (sw.js) que vive en /sw.js.
+         Una vez registrado, el SW intercepta peticiones y permite
+         que la app funcione sin internet.
+
+         Por qué está aquí y no en main.jsx:
+           - El SW debe registrarse lo más temprano posible
+           - En index.html siempre se ejecuta, independientemente
+             de React y del bundle de Vite
+    ──────────────────────────────────────────────────────────── -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        // Solo registramos si el navegador soporta Service Workers
+        // (todos los modernos lo hacen: Chrome, Firefox, Safari, Edge)
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registro) => {
+              console.log("[PWA] Service Worker registrado:", registro.scope);
+            })
+            .catch((error) => {
+              console.warn("[PWA] Error al registrar Service Worker:", error);
+            });
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+<!--
+═══════════════════════════════════════════════════════════════
+CÓMO CREAR LOS ÍCONOS (icon-192.png y icon-512.png)
+═══════════════════════════════════════════════════════════════
+
+Opción A — Rápida con favicon.io:
+  1. Ve a https://favicon.io/favicon-generator/
+  2. Texto: "∂" o "TC", fondo: #0d0a2a, letra: #a78bfa
+  3. Descarga el ZIP → extrae favicon.ico, android-chrome-192x192.png
+     y android-chrome-512x512.png
+  4. Renómbralos a icon-192.png e icon-512.png
+  5. Colócalos en la carpeta /public de tu proyecto Vite
+
+Opción B — Con Node/sharp (si quieres automatizarlo):
+  npm install sharp
+  node -e "
+    const sharp = require('sharp');
+    const svg = Buffer.from('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\"><rect width=\"512\" height=\"512\" rx=\"80\" fill=\"#0d0a2a\"/><text x=\"256\" y=\"340\" text-anchor=\"middle\" font-size=\"300\" fill=\"#a78bfa\">∂</text></svg>');
+    sharp(svg).resize(192).png().toFile('public/icon-192.png');
+    sharp(svg).resize(512).png().toFile('public/icon-512.png');
+  "
+
+Opción C — Online sin instalar nada:
+  Ve a https://maskable.app/editor
+  Diseña tu ícono con fondo #0d0a2a y símbolo ∂ en #a78bfa
+  Exporta en 192x192 y 512x512
+
+DÓNDE colocar los archivos en tu proyecto Vite:
+  mi-calculadora/
+  ├── public/
+  │   ├── sw.js          ← aquí (copiado desde los archivos que te entrego)
+  │   ├── manifest.json  ← aquí
+  │   ├── icon-192.png   ← aquí (tú lo creas con instrucciones de arriba)
+  │   └── icon-512.png   ← aquí
+  ├── src/
+  │   ├── App.jsx        ← aquí (el archivo actualizado)
+  │   └── main.jsx
+  └── index.html         ← aquí (este archivo)
+
+PROBAR LA PWA EN LOCAL:
+  La instalación solo funciona en HTTPS o localhost.
+  Con Vite, npm run dev ya levanta en localhost → funciona.
+  Para probar en celular: conecta el celular al mismo WiFi,
+  corre: npx vite --host, y abre la IP que te muestra en el celular.
+
+═══════════════════════════════════════════════════════════════
+-->

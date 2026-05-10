@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "katex": "^0.16.45",
+    "mathjs": "^15.2.0",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0"
+  }
+}
