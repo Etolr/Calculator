@@ -1427,6 +1427,10 @@ export default function App() {
   const [criticos,     setCriticos]     = useState(null);
   const [criticosError,setCriticosError]= useState("");
 
+  // Derivada de orden n
+  const [nthOrder,  setNthOrder]  = useState(null);
+  const [nthResult, setNthResult] = useState(null);
+
   const inputRef    = useRef(null);
   const limInputRef = useRef(null);  // ref para el input de límites
   const intInputRef = useRef(null);  // ref para el input de integrales
@@ -1511,6 +1515,7 @@ export default function App() {
       return;
     }
     setResult(res); setRule(rule); setAnimKey(k=>k+1);
+    setNthOrder(null); setNthResult(null); setCriticos(null);
     try { setGraph(generatePoints(res.processed, res.outputText)); } catch(_) { setGraph(null); }
     const np = generarPasos(preprocess(input));
     setPasos(np); setMostrarPasos(true);
@@ -1759,6 +1764,54 @@ export default function App() {
                     </div>
                     <div style={{ marginTop:8, fontSize:"0.72rem", color:"#64748b", textAlign:"center" }}>
                       Texto: f'(x) = {result.outputText}
+                    </div>
+                    {/* Copiar al portapapeles */}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`f'(x) = ${result.outputText}`);
+                        const btn = document.getElementById("copy-btn-deriv");
+                        if (btn) { btn.textContent = "✓ Copiado!"; btn.style.color="#10b981"; btn.style.borderColor="#10b98166"; setTimeout(()=>{ btn.textContent="📋 Copiar resultado"; btn.style.color="#94a3b8"; btn.style.borderColor="rgba(255,255,255,0.12)"; },2000); }
+                      }}
+                      id="copy-btn-deriv"
+                      style={{ marginTop:10, width:"100%", padding:"7px", borderRadius:8, border:"1px solid rgba(255,255,255,0.12)", background:"rgba(255,255,255,0.04)", color:"#94a3b8", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}>
+                      📋 Copiar resultado
+                    </button>
+
+                    {/* Derivada de orden n */}
+                    <div style={{ marginTop:16 }}>
+                      <span style={S.label}>derivada de orden n</span>
+                      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+                        {[2,3,4,5].map(n => (
+                          <button key={n} onClick={() => {
+                            try {
+                              let expr = preprocess(input);
+                              for (let i = 0; i < n; i++) expr = math.simplify(math.derivative(expr,"x")).toString();
+                              const latex = math.parse(expr).toTex();
+                              setNthOrder(n); setNthResult({ text: expr, latex });
+                            } catch(e) { setNthResult({ error: e.message }); setNthOrder(n); }
+                          }}
+                          style={{ padding:"5px 14px", borderRadius:8, border:`1px solid ${nthOrder===n?"#38bdf888":"rgba(56,189,248,0.2)"}`, background:nthOrder===n?"rgba(56,189,248,0.15)":"rgba(56,189,248,0.05)", color:nthOrder===n?"#38bdf8":"#64748b", fontSize:"0.8rem", cursor:"pointer", fontFamily:"inherit" }}>
+                            f<sup>({n})</sup>
+                          </button>
+                        ))}
+                        {nthOrder && <button onClick={()=>{setNthOrder(null);setNthResult(null);}} style={{ padding:"5px 10px", borderRadius:8, border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.07)", color:"#f87171", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}>✕</button>}
+                      </div>
+                      {nthResult && !nthResult.error && (
+                        <div style={{ background:"rgba(56,189,248,0.07)", border:"1px solid rgba(56,189,248,0.25)", borderRadius:10, padding:"12px 14px", animation:"cyberSlide 0.3s ease" }}>
+                          <div style={{ fontSize:"0.65rem", color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:6 }}>f<sup>({nthOrder})</sup>(x)</div>
+                          <KaTeX formula={nthResult.latex} display={true} />
+                          <div style={{ marginTop:8, fontSize:"0.7rem", color:"#64748b", fontFamily:"monospace" }}>{nthResult.text}</div>
+                          <button onClick={() => {
+                            navigator.clipboard.writeText(`f^(${nthOrder})(x) = ${nthResult.text}`);
+                            const btn = document.getElementById("copy-btn-nth");
+                            if (btn) { btn.textContent="✓ Copiado!"; btn.style.color="#10b981"; setTimeout(()=>{ btn.textContent="📋 Copiar"; btn.style.color="#64748b"; },2000); }
+                          }} id="copy-btn-nth"
+                          style={{ marginTop:8, padding:"4px 12px", borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"transparent", color:"#64748b", fontSize:"0.72rem", cursor:"pointer", fontFamily:"inherit" }}>
+                            📋 Copiar
+                          </button>
+                        </div>
+                      )}
+                      {nthResult?.error && <div style={S.error}>⚠ {nthResult.error}</div>}
                     </div>
                   </div>
                 )}
@@ -2078,6 +2131,30 @@ export default function App() {
                 />
                 {intError && <div style={S.error}>⚠ {intError}</div>}
                 <button style={S.btn} onClick={handleIntegrate}>CALCULAR INTEGRAL →</button>
+
+                {/* Ejemplos predefinidos */}
+                <div style={{ marginTop:16 }}>
+                  <span style={S.label}>ejemplos rápidos</span>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {[
+                      { label:"x³",      fn:"x^3" },
+                      { label:"sin(x)",  fn:"sin(x)" },
+                      { label:"cos(x)",  fn:"cos(x)" },
+                      { label:"eˣ",      fn:"e^x" },
+                      { label:"ln(x)",   fn:"ln(x)" },
+                      { label:"1/x",     fn:"1/x" },
+                      { label:"√x",      fn:"sqrt(x)" },
+                      { label:"tan(x)",  fn:"tan(x)" },
+                    ].map(ej => (
+                      <button key={ej.fn} onClick={() => { setIntExpr(ej.fn); setIntResult(null); setIntError(""); setDefResult(null); }}
+                        style={{ padding:"5px 12px", borderRadius:8, border:"1px solid rgba(52,211,153,0.25)", background:"rgba(52,211,153,0.07)", color:"#6ee7b7", fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}
+                        onMouseEnter={e => { e.target.style.background="rgba(52,211,153,0.18)"; e.target.style.borderColor="rgba(52,211,153,0.6)"; }}
+                        onMouseLeave={e => { e.target.style.background="rgba(52,211,153,0.07)"; e.target.style.borderColor="rgba(52,211,153,0.25)"; }}>
+                        {ej.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 <div style={{ marginTop:16 }}>
                   <span style={S.label}>teclado rápido</span>
