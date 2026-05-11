@@ -1587,7 +1587,7 @@ function RenderMensaje({ texto }) {
   return <span ref={ref} style={{ lineHeight:1.75 }} />;
 }
 
-function TabIATutor({ contextoCalculadora }) {
+function TabIATutor({ contextoCalculadora, prefill, onPrefillUsed, isDark, T }) {
   const [mensajes,    setMensajes]    = useState(() => { try { const s = localStorage.getItem("neoderiva_ia_chat"); return s ? JSON.parse(s) : []; } catch { return []; } });
   const [input,       setIaInput]     = useState("");
   const [cargando,    setCargando]    = useState(false);
@@ -1596,6 +1596,15 @@ function TabIATutor({ contextoCalculadora }) {
   const [usarContexto,setUsarContexto]= useState(true);
   const chatRef   = useRef(null);
   const inputRef  = useRef(null);
+
+  // Si llega prefill desde otro tab, lo carga en el input
+  useEffect(() => {
+    if (prefill) {
+      setIaInput(prefill);
+      onPrefillUsed?.();
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  }, [prefill]);
 
   // Scroll automático al último mensaje
   useEffect(() => {
@@ -1688,7 +1697,9 @@ function TabIATutor({ contextoCalculadora }) {
     "¿Qué relación hay entre derivada e integral?",
   ];
 
-  const glassIA = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(167,139,250,0.18)", borderRadius:14, padding:16, backdropFilter:"blur(12px)" };
+  const glassIA = T
+    ? { background:T.surface, border:`1px solid ${T.border}`, borderRadius:14, padding:16, backdropFilter:"blur(12px)" }
+    : { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(167,139,250,0.18)", borderRadius:14, padding:16, backdropFilter:"blur(12px)" };
 
   return (
     <div style={{ width:"100%", maxWidth:760, margin:"0 auto", padding:"20px 16px 40px", boxSizing:"border-box" }}>
@@ -1860,6 +1871,59 @@ function TabIATutor({ contextoCalculadora }) {
 
 export default function App() {
   const [tab,          setTab]        = useState("calc");
+  const [tema,         setTema]       = useState(() => localStorage.getItem("neoderiva_tema") || "dark");
+  const isDark = tema === "dark";
+
+  // Tokens de color según tema
+  const T = isDark ? {
+    bg:       "linear-gradient(135deg,#060612 0%,#0d0a2a 40%,#10082a 70%,#060612 100%)",
+    surface:  "rgba(255,255,255,0.05)",
+    surfaceHover: "rgba(255,255,255,0.08)",
+    border:   "rgba(255,255,255,0.08)",
+    borderAccent: "rgba(167,139,250,0.25)",
+    text:     "#e2e8f0",
+    textMuted:"#94a3b8",
+    textDim:  "#64748b",
+    inputBg:  "rgba(0,0,0,0.4)",
+    scanline: "rgba(167,139,250,0.015)",
+    glow:     "#a78bfa08",
+    tabInactive: "rgba(255,255,255,0.06)",
+    tabInactiveTxt: "#94a3b8",
+    errorBg:  "#ef444415",
+    errorBorder:"#ef444444",
+    errorTxt: "#fca5a5",
+  } : {
+    bg:       "linear-gradient(135deg,#faf8f4 0%,#f5f0e8 40%,#ede8dc 70%,#faf8f4 100%)",
+    surface:  "rgba(255,255,255,0.75)",
+    surfaceHover: "rgba(255,255,255,0.9)",
+    border:   "rgba(180,160,120,0.2)",
+    borderAccent: "rgba(139,90,180,0.3)",
+    text:     "#1a1a2e",
+    textMuted:"#5a5a7a",
+    textDim:  "#8a8aaa",
+    inputBg:  "rgba(255,255,255,0.8)",
+    scanline: "rgba(139,90,180,0.008)",
+    glow:     "rgba(167,139,250,0.06)",
+    tabInactive: "rgba(139,90,180,0.08)",
+    tabInactiveTxt: "#5a5a7a",
+    errorBg:  "#fef2f2",
+    errorBorder:"#fca5a5",
+    errorTxt: "#dc2626",
+  };
+
+  const toggleTema = () => {
+    const nuevo = isDark ? "light" : "dark";
+    setTema(nuevo);
+    try { localStorage.setItem("neoderiva_tema", nuevo); } catch(_) {}
+  };
+
+  // Contexto del tutor: función/derivada actual para pre-llenar el chat
+  const [tutorPrefill, setTutorPrefill] = useState(null);
+
+  const preguntarAlTutor = (mensaje) => {
+    setTutorPrefill(mensaje);
+    setTab("ia");
+  };
   const [input,        setInput]      = useState("");
   const [result,       setResult]     = useState(null);
   const [ruleInfo,     setRule]       = useState(null);
@@ -2108,33 +2172,33 @@ export default function App() {
   };
 
   const S = {
-    root: { minHeight:"100vh", background:"linear-gradient(135deg,#060612 0%,#0d0a2a 40%,#10082a 70%,#060612 100%)", fontFamily:"'Space Mono','DM Mono','Fira Code',monospace", color:"#e2e8f0", paddingBottom:80 },
+    root: { minHeight:"100vh", background:T.bg, fontFamily:"'Space Mono','DM Mono','Fira Code',monospace", color:T.text, paddingBottom:80, transition:"background 0.4s ease, color 0.4s ease" },
     header: { textAlign:"center", padding:"60px 20px 10px", position:"relative" },
     title: { fontSize:"clamp(1.6rem,5vw,2.8rem)", fontWeight:700, background:"linear-gradient(90deg,#ff6ee4,#a78bfa,#38bdf8,#34d399)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", margin:0, letterSpacing:"-1px", filter:"drop-shadow(0 0 20px #a78bfa44)", lineHeight:1.25, paddingBottom:"0.1em" },
-    subtitle: { color:"#94a3b8", fontSize:"0.8rem", marginTop:4, letterSpacing:"0.1em", textTransform:"uppercase" },
+    subtitle: { color:T.textMuted, fontSize:"0.8rem", marginTop:4, letterSpacing:"0.1em", textTransform:"uppercase" },
     badge: { display:"inline-block", marginTop:8, fontSize:"0.65rem", color:"#38bdf8", border:"1px solid #38bdf833", background:"#38bdf80a", padding:"3px 12px", borderRadius:999, letterSpacing:"0.12em" },
     tabs: { display:"flex", justifyContent:"center", gap:4, marginTop:20, flexWrap:"wrap", padding:"0 12px" },
-    tab: (active) => ({ padding:"8px 16px", borderRadius:999, border:`1px solid ${active?"transparent":"rgba(255,255,255,0.15)"}`, cursor:"pointer", fontSize:"0.78rem", fontWeight:700, letterSpacing:"0.06em", transition:"all 0.25s cubic-bezier(.4,0,.2,1)",
-      background:active?"linear-gradient(135deg,#a78bfa,#38bdf8)":"rgba(255,255,255,0.06)",
-      color:active?"#0f0c29":"#94a3b8", boxShadow:active?"0 0 20px #a78bfa55":"none" }),
+    tab: (active) => ({ padding:"8px 16px", borderRadius:999, border:`1px solid ${active?"transparent":T.border}`, cursor:"pointer", fontSize:"0.78rem", fontWeight:700, letterSpacing:"0.06em", transition:"all 0.25s cubic-bezier(.4,0,.2,1)",
+      background:active?"linear-gradient(135deg,#a78bfa,#38bdf8)":T.tabInactive,
+      color:active?"#0f0c29":T.tabInactiveTxt, boxShadow:active?"0 0 20px #a78bfa55":"none" }),
     grid: { width:"100%", padding:"24px 16px 0", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,340px),1fr))", gap:16, boxSizing:"border-box" },
-    card: { ...glassCard, marginTop:0 },
+    card: { background:T.surface, backdropFilter:"blur(12px)", borderRadius:20, padding:32, border:`1px solid ${T.border}`, marginTop:0 },
     fullWrap: { width:"100%", padding:"0 16px", boxSizing:"border-box" },
-    graphCard: { ...glassCard },
-    label: { fontSize:"0.65rem", letterSpacing:"0.12em", color:"#94a3b8", textTransform:"uppercase", marginBottom:6, display:"block" },
-    inputBox: { width:"100%", background:"rgba(0,0,0,0.4)", border:"1.5px solid rgba(167,139,250,0.25)", borderRadius:10, padding:"12px 14px", color:"#e2e8f0", fontSize:"1rem", fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.25s, box-shadow 0.25s" },
+    graphCard: { background:T.surface, backdropFilter:"blur(12px)", borderRadius:20, padding:32, border:`1px solid ${T.border}`, marginTop:20 },
+    label: { fontSize:"0.65rem", letterSpacing:"0.12em", color:T.textMuted, textTransform:"uppercase", marginBottom:6, display:"block" },
+    inputBox: { width:"100%", background:T.inputBg, border:`1.5px solid ${T.borderAccent}`, borderRadius:10, padding:"12px 14px", color:T.text, fontSize:"1rem", fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.25s, box-shadow 0.25s" },
     btn: { ...cyberBtn, width:"100%", marginTop:14, padding:13, display:"block" },
     kbGrid4: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:4, marginTop:12 },
     kbGrid5: { display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:4, marginBottom:4 },
-    kbBtn: (g) => { const [bg,col]=KB_COLORS[g]||KB_COLORS.num; return { padding:"8px 4px", borderRadius:7, border:`1px solid ${col}33`, background:bg, color:col, cursor:"pointer", fontSize:"0.8rem", fontWeight:600, transition:"all 0.15s" }; },
-    ruleCard: (c) => ({ borderLeft:`4px solid ${c}`, background:`${c}10`, borderRadius:"0 12px 12px 0", padding:"14px 18px", marginBottom:16, boxShadow:`0 0 12px ${c}22` }),
-    resultBox: (accent) => ({ background:accent?"rgba(167,139,250,0.08)":"rgba(0,0,0,0.25)", border:accent?"1px solid rgba(167,139,250,0.3)":"1px solid rgba(255,255,255,0.05)", borderRadius:10, padding:16, textAlign:"center" }),
-    error: { background:"#ef444415", border:"1px solid #ef444444", borderRadius:8, padding:"9px 12px", marginTop:10, fontSize:"0.8rem", color:"#fca5a5" },
-    empty: { textAlign:"center", color:"#64748b", marginTop:50, padding:"0 10px", lineHeight:1.8 },
+    kbBtn: (g) => { const [bg,col]=KB_COLORS[g]||KB_COLORS.num; return { padding:"8px 4px", borderRadius:7, border:`1px solid ${col}33`, background:isDark?bg:`${col}12`, color:col, cursor:"pointer", fontSize:"0.8rem", fontWeight:600, transition:"all 0.15s" }; },
+    ruleCard: (c) => ({ borderLeft:`4px solid ${c}`, background:isDark?`${c}10`:`${c}08`, borderRadius:"0 12px 12px 0", padding:"14px 18px", marginBottom:16, boxShadow:`0 0 12px ${c}22` }),
+    resultBox: (accent) => ({ background:accent?isDark?"rgba(167,139,250,0.08)":"rgba(139,90,180,0.06)":isDark?"rgba(0,0,0,0.25)":"rgba(0,0,0,0.03)", border:accent?`1px solid ${T.borderAccent}`:`1px solid ${T.border}`, borderRadius:10, padding:16, textAlign:"center" }),
+    error: { background:T.errorBg, border:`1px solid ${T.errorBorder}`, borderRadius:8, padding:"9px 12px", marginTop:10, fontSize:"0.8rem", color:T.errorTxt },
+    empty: { textAlign:"center", color:T.textDim, marginTop:50, padding:"0 10px", lineHeight:1.8 },
     glossGrid: { width:"100%", margin:"24px 0 0", padding:"0 16px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,240px),1fr))", gap:14, boxSizing:"border-box" },
-    glossCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:20, boxShadow:`0 0 12px ${c}10` }),
+    glossCard: (c) => ({ background:isDark?`${c}08`:`${c}06`, border:`1px solid ${c}33`, borderRadius:14, padding:20, boxShadow:`0 0 12px ${c}10` }),
     integGrid: { width:"100%", margin:"24px 0 0", padding:"0 16px", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,260px),1fr))", gap:14, boxSizing:"border-box" },
-    integCard: (c) => ({ background:`${c}08`, border:`1px solid ${c}33`, borderRadius:14, padding:18, boxShadow:`0 0 12px ${c}10` }),
+    integCard: (c) => ({ background:isDark?`${c}08`:`${c}06`, border:`1px solid ${c}33`, borderRadius:14, padding:18, boxShadow:`0 0 12px ${c}10` }),
   };
 
   const tabList = [["calc","∂ Derivadas"],["lim","lim Límites"],["int","∫ Integrales"],["quiz","🎮 Quiz"],["glos","📖 Glosario"],["notas","📝 Notas"],["ia","🤖 IA Tutor"]];
@@ -2142,8 +2206,14 @@ export default function App() {
   return (
     <><div style={S.root}>
       {/* Scanlines & glow bg */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(167,139,250,0.015) 2px,rgba(167,139,250,0.015) 4px)" }} />
-      <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: "60vw", height: "40vh", background: "radial-gradient(ellipse,#a78bfa08 0%,transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, background: `repeating-linear-gradient(0deg,transparent,transparent 2px,${T.scanline} 2px,${T.scanline} 4px)` }} />
+      <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: "60vw", height: "40vh", background: `radial-gradient(ellipse,${T.glow} 0%,transparent 70%)`, pointerEvents: "none", zIndex: 0 }} />
+
+      {/* Botón toggle tema */}
+      <button onClick={toggleTema} title={isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+        style={{ position:"fixed", top:16, right:16, zIndex:100, padding:"6px 12px", borderRadius:999, border:`1px solid ${T.border}`, background:T.surface, color:T.text, fontSize:"0.8rem", cursor:"pointer", backdropFilter:"blur(8px)", boxShadow:"0 2px 12px rgba(0,0,0,0.15)", transition:"all 0.3s ease" }}>
+        {isDark ? "☀️ Claro" : "🌙 Oscuro"}
+      </button>
 
       <div style={{ position: "relative", zIndex: 1 }}>
         <div style={S.header}>
@@ -2258,6 +2328,13 @@ export default function App() {
                       id="copy-btn-deriv"
                       style={{ marginTop: 10, width: "100%", padding: "7px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "#94a3b8", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>
                       📋 Copiar resultado
+                    </button>
+
+                    {/* Preguntarle al tutor */}
+                    <button
+                      onClick={() => preguntarAlTutor(`Estoy viendo f(x) = ${input}, su derivada es f'(x) = ${result.outputText}. ¿Por qué? Explícame paso a paso.`)}
+                      style={{ marginTop: 6, width: "100%", padding: "7px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.3)", background: "rgba(167,139,250,0.07)", color: "#a78bfa", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+                      🤖 Preguntarle al tutor
                     </button>
 
                     {/* Derivada de orden n */}
@@ -2921,6 +2998,10 @@ export default function App() {
             limExpr: limExpr || null,
             intExpr: intExpr || null,
           }}
+          prefill={tutorPrefill}
+          onPrefillUsed={() => setTutorPrefill(null)}
+          isDark={isDark}
+          T={T}
         />
       )}
 
@@ -2954,8 +3035,8 @@ export default function App() {
           .katex { font-size: 0.95em !important; }
           .katex-display { overflow-x: auto !important; }
         }
-        .katex { color: #e2e8f0 !important; }
-        pre { color: #cbd5e1 !important; }
+        .katex { color: ${isDark ? "#e2e8f0" : "#1a1a2e"} !important; }
+        pre { color: ${isDark ? "#cbd5e1" : "#2d3748"} !important; }
       `}</style>
   </>
   );
