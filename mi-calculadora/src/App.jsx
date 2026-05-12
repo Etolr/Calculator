@@ -74,7 +74,8 @@ function preprocess(input) {
     .replace(/(\d)([a-zA-Z(])/g, "$1*$2")
     .replace(/([a-zA-Z])(\d)/g, "$1^$2")
     .replace(/\be\^([^\s+\-*/^()]+)/g, "exp($1)")
-    .replace(/\bln\b/gi, "log");
+    .replace(/\bln\b/gi, "log")
+    .replace(/\*\*/g, "^");
 }
 
 // ─── DETECTOR DE REGLAS ───────────────────────────────────────
@@ -2242,6 +2243,11 @@ export default function App() {
                   onKeyDown={e => e.key === "Enter" && handleDerive()}
                   placeholder="Ej: x^3 + sin(x)"
                   spellCheck={false} />
+                  {input && (
+                  <div style={{ marginTop:8, padding:"10px 14px", background:"rgba(0,0,0,0.2)", borderRadius:8, minHeight:36, textAlign:"center" }}>
+                  <KaTeX formula={(() => { try { return math.parse(preprocess(input)).toTex(); } catch(_) { return input; } })()} display={false} />
+                   </div>
+                 )}
                 {error && <div style={S.error}>⚠ {error}</div>}
                 <button style={S.btn} onClick={handleDerive}>CALCULAR DERIVADA →</button>
 
