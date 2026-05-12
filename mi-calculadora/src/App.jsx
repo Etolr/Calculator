@@ -2551,6 +2551,11 @@ export default function App() {
                   onKeyDown={e => e.key === "Enter" && handleLimit()}
                   placeholder="Ej: sin(x)/x  o  (x^2-1)/(x-1)"
                   spellCheck={false} />
+                  {limExpr && (
+                  <div style={{ marginTop:8, padding:"10px 14px", background:"rgba(0,0,0,0.2)", borderRadius:8, minHeight:36, textAlign:"center" }}>
+                  <KaTeX formula={(() => { try { return math.parse(preprocess(limExpr)).toTex(); } catch(_) { return limExpr; } })()} display={false} />
+                </div>
+               )}
                 <span style={{ ...S.label, marginTop: 14 }}>punto x →</span>
                 <input
                   style={S.inputBox}
