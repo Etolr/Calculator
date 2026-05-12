@@ -2740,6 +2740,11 @@ export default function App() {
                   onKeyDown={e => e.key === "Enter" && handleIntegrate()}
                   placeholder="Ej: x^3  sin(x)  e^x  1/x  sqrt(x)"
                   spellCheck={false} />
+                  {limExpr && (
+                  <div style={{ marginTop:8, padding:"10px 14px", background:"rgba(0,0,0,0.2)", borderRadius:8, minHeight:36, textAlign:"center" }}>
+                  <KaTeX formula={(() => { try { return math.parse(preprocess(limExpr)).toTex(); } catch(_) { return limExpr; } })()} display={false} />
+                 </div>
+                )}
                 {intError && <div style={S.error}>⚠ {intError}</div>}
                 <button style={S.btn} onClick={handleIntegrate}>CALCULAR INTEGRAL →</button>
 
