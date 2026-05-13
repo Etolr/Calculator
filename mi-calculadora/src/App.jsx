@@ -2251,28 +2251,61 @@ export default function App() {
                 {error && <div style={S.error}>⚠ {error}</div>}
                 <button style={S.btn} onClick={handleDerive}>CALCULAR DERIVADA →</button>
 
-                {/* Ejemplos predefinidos */}
+                {/* Ejemplos por categoría — clic llena el input Y calcula automáticamente */}
                 <div style={{ marginTop: 16 }}>
-                  <span style={S.label}>ejemplos rápidos</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {[
-                      { label: "x³", fn: "x^3" },
-                      { label: "sin(x)", fn: "sin(x)" },
-                      { label: "eˣ", fn: "e^x" },
-                      { label: "ln(x)", fn: "ln(x)" },
-                      { label: "x²+3x", fn: "x^2+3*x" },
-                      { label: "x·sin(x)", fn: "x*sin(x)" },
-                      { label: "sin(x²)", fn: "sin(x^2)" },
-                      { label: "x⁴−4x²", fn: "x^4-4*x^2" },
-                    ].map(ej => (
-                      <button key={ej.fn} onClick={() => { setInput(ej.fn); setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setCriticos(null); } }
-                        style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(167,139,250,0.25)", background: "rgba(167,139,250,0.07)", color: "#c4b5fd", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}
-                        onMouseEnter={e => { e.target.style.background = "rgba(167,139,250,0.18)"; e.target.style.borderColor = "rgba(167,139,250,0.6)"; } }
-                        onMouseLeave={e => { e.target.style.background = "rgba(167,139,250,0.07)"; e.target.style.borderColor = "rgba(167,139,250,0.25)"; } }>
-                        {ej.label}
-                      </button>
-                    ))}
-                  </div>
+                  <span style={S.label}>ejemplos — clic para calcular</span>
+                  {[
+                    { categoria: "Básico", color: "#10b981", ejemplos: [
+                      { label: "x³",        fn: "x^3" },
+                      { label: "sin(x)",    fn: "sin(x)" },
+                      { label: "eˣ",        fn: "e^x" },
+                      { label: "ln(x)",     fn: "ln(x)" },
+                      { label: "√x",        fn: "sqrt(x)" },
+                    ]},
+                    { categoria: "Intermedio", color: "#f59e0b", ejemplos: [
+                      { label: "x²+3x",     fn: "x^2+3*x" },
+                      { label: "x·sin(x)",  fn: "x*sin(x)" },
+                      { label: "x²/cos(x)", fn: "x^2/cos(x)" },
+                      { label: "3x⁴−2x²+1",fn: "3*x^4-2*x^2+1" },
+                    ]},
+                    { categoria: "Avanzado", color: "#ef4444", ejemplos: [
+                      { label: "sin(x²)",           fn: "sin(x^2)" },
+                      { label: "ln(√(x²+1))",       fn: "ln(sqrt(x^2+1))" },
+                      { label: "sin(x)·cos(x)/eˣ",  fn: "sin(x)*cos(x)/e^x" },
+                      { label: "eˢⁱⁿ⁽ˣ⁾",           fn: "e^sin(x)" },
+                    ]},
+                  ].map(({ categoria, color, ejemplos }) => (
+                    <div key={categoria} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: "0.62rem", color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5, fontWeight: 700 }}>{categoria}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {ejemplos.map(ej => (
+                          <button key={ej.fn}
+                            onClick={() => {
+                              // Llena el input y calcula automáticamente
+                              setInput(ej.fn);
+                              setResult(null); setRule(null); setError(""); setGraph(null); setMostrarPasos(false); setCriticos(null);
+                              // setTimeout para que el estado se actualice antes de calcular
+                              setTimeout(() => {
+                                try {
+                                  const processed = preprocess(ej.fn);
+                                  const node = math.parse(processed);
+                                  const deriv = math.simplify(math.derivative(node, "x"));
+                                  setResult({ success:true, inputLatex:node.toTex(), outputLatex:deriv.toTex(), outputText:deriv.toString(), processed });
+                                  setRule(detectRule(processed));
+                                  setAnimKey(k => k+1);
+                                  try { setGraph(generatePoints(processed, deriv.toString())); } catch(_) {}
+                                } catch(e) { setError(`No pude interpretar la función. (${e.message})`); }
+                              }, 50);
+                            }}
+                            style={{ padding: "5px 11px", borderRadius: 8, border: `1px solid ${color}33`, background: `${color}0a`, color, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = `${color}20`; e.currentTarget.style.borderColor = `${color}66`; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = `${color}0a`; e.currentTarget.style.borderColor = `${color}33`; }}>
+                            {ej.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div style={{ marginTop: 18 }}>
                   <span style={S.label}>teclado rápido</span>
@@ -2748,28 +2781,47 @@ export default function App() {
                 {intError && <div style={S.error}>⚠ {intError}</div>}
                 <button style={S.btn} onClick={handleIntegrate}>CALCULAR INTEGRAL →</button>
 
-                {/* Ejemplos predefinidos */}
+                {/* Ejemplos por categoría — clic llena el input Y calcula automáticamente */}
                 <div style={{ marginTop: 16 }}>
-                  <span style={S.label}>ejemplos rápidos</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {[
-                      { label: "x³", fn: "x^3" },
+                  <span style={S.label}>ejemplos — clic para calcular</span>
+                  {[
+                    { categoria: "Básico", color: "#10b981", ejemplos: [
+                      { label: "x³",     fn: "x^3" },
                       { label: "sin(x)", fn: "sin(x)" },
                       { label: "cos(x)", fn: "cos(x)" },
-                      { label: "eˣ", fn: "e^x" },
+                      { label: "eˣ",     fn: "e^x" },
+                      { label: "√x",     fn: "sqrt(x)" },
+                    ]},
+                    { categoria: "Intermedio", color: "#f59e0b", ejemplos: [
                       { label: "ln(x)", fn: "ln(x)" },
-                      { label: "1/x", fn: "1/x" },
-                      { label: "√x", fn: "sqrt(x)" },
-                      { label: "tan(x)", fn: "tan(x)" },
-                    ].map(ej => (
-                      <button key={ej.fn} onClick={() => { setIntExpr(ej.fn); setIntResult(null); setIntError(""); setDefResult(null); } }
-                        style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid rgba(52,211,153,0.25)", background: "rgba(52,211,153,0.07)", color: "#6ee7b7", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}
-                        onMouseEnter={e => { e.target.style.background = "rgba(52,211,153,0.18)"; e.target.style.borderColor = "rgba(52,211,153,0.6)"; } }
-                        onMouseLeave={e => { e.target.style.background = "rgba(52,211,153,0.07)"; e.target.style.borderColor = "rgba(52,211,153,0.25)"; } }>
-                        {ej.label}
-                      </button>
-                    ))}
-                  </div>
+                      { label: "1/x",   fn: "1/x" },
+                      { label: "tan(x)",fn: "tan(x)" },
+                      { label: "3x²",   fn: "3*x^2" },
+                      { label: "x⁵",    fn: "x^5" },
+                    ]},
+                  ].map(({ categoria, color, ejemplos }) => (
+                    <div key={categoria} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: "0.62rem", color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5, fontWeight: 700 }}>{categoria}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {ejemplos.map(ej => (
+                          <button key={ej.fn}
+                            onClick={() => {
+                              setIntExpr(ej.fn);
+                              setIntResult(null); setIntError(""); setDefResult(null);
+                              setTimeout(() => {
+                                const res = computeIntegral(ej.fn);
+                                setIntResult(res);
+                              }, 50);
+                            }}
+                            style={{ padding: "5px 11px", borderRadius: 8, border: `1px solid ${color}33`, background: `${color}0a`, color, fontSize: "0.76rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = `${color}20`; e.currentTarget.style.borderColor = `${color}66`; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = `${color}0a`; e.currentTarget.style.borderColor = `${color}33`; }}>
+                            {ej.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div style={{ marginTop: 16 }}>
