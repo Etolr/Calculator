@@ -2183,7 +2183,7 @@ export default function App() {
       background:active?"linear-gradient(135deg,#a78bfa,#38bdf8)":T.tabInactive,
       color:active?"#0f0c29":T.tabInactiveTxt, boxShadow:active?"0 0 20px #a78bfa55":"none" }),
     grid: { width:"100%", padding:"24px 16px 0", display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,340px),1fr))", gap:16, boxSizing:"border-box" },
-    card: { background:T.surface, backdropFilter:"blur(12px)", borderRadius:20, padding:32, border:`1px solid ${T.border}`, marginTop:0 },
+    card: { background:T.surface, backdropFilter:"blur(12px)", borderRadius:20, padding:24, border:`1px solid ${T.border}`, marginTop:0, display:"flex", flexDirection:"column" },
     fullWrap: { width:"100%", padding:"0 16px", boxSizing:"border-box" },
     graphCard: { background:T.surface, backdropFilter:"blur(12px)", borderRadius:20, padding:32, border:`1px solid ${T.border}`, marginTop:20 },
     label: { fontSize:"0.65rem", letterSpacing:"0.12em", color:T.textMuted, textTransform:"uppercase", marginBottom:6, display:"block" },
@@ -2234,6 +2234,7 @@ export default function App() {
             <div style={S.grid}>
               {/* IZQUIERDO */}
               <div style={S.card}>
+                <div style={{ flex:1 }}>
                 <span style={S.label}>función f(x)</span>
                 <input
                   ref={inputRef}
@@ -2307,7 +2308,8 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 18 }}>
+                </div>{/* fin flex:1 */}
+                <div style={{ marginTop: "auto", paddingTop: 16, borderTop: `1px solid ${T.border}` }}>
                   <span style={S.label}>teclado rápido</span>
                   <div style={S.kbGrid5}>
                     {NUMS.map(n => <button key={n} style={S.kbBtn("num")} onClick={() => insertAtCursor(n)}>{n}</button>)}
@@ -2824,7 +2826,7 @@ export default function App() {
                   ))}
                 </div>
 
-                <div style={{ marginTop: 16 }}>
+                <div style={{ marginTop: "auto", paddingTop: 16, borderTop: `1px solid ${T.border}` }}>
                   <span style={S.label}>teclado rápido</span>
                   <div style={S.kbGrid5}>
                     {NUMS.map(n => <button key={n} style={S.kbBtn("num")} onClick={() => insertInt(n)}>{n}</button>)}
